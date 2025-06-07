@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 import { useMsal, AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import DataverseCaller from "./DataverseCaller";
@@ -10,18 +10,8 @@ const loginRequest = {
 
 const App = () => {
   const { instance, accounts } = useMsal();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   console.log("Accounts:", accounts);
-
-
-  useEffect(() => {
-    if (accounts && accounts.length > 0) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-  }, [accounts]);
 
   const handleLogin = () => {
     instance.loginRedirect(loginRequest);

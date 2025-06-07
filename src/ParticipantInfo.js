@@ -8,8 +8,26 @@ const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   try {
-    // Assuming dateString is in a format parsable by Date constructor (e.g., ISO format)
-    return new Date(dateString).toLocaleDateString(undefined, {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) { // Check if date is invalid
+        // Try to parse if it's already in YYYY-MM-DD format (from input type="date")
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) -1; // Month is 0-indexed
+            const day = parseInt(parts[2], 10);
+            const newDate = new Date(year, month, day);
+            if (!isNaN(newDate.getTime())) {
+                 return newDate.toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                });
+            }
+        }
+        return 'Invalid Date';
+    }
+    return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -17,6 +35,28 @@ const formatDate = (dateString) => {
   } catch (e) {
     console.error("Error formatting date:", e);
     return dateString; // Fallback to original string if formatting fails
+  }
+};
+
+// Helper function to format date strings for input type="date"
+const formatDateForInput = (dateString) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) { // Check if date is invalid
+        // If it's already in YYYY-MM-DD, it's fine for input
+        if (/^\\d{4}-\\d{2}-\\d{2}$/.test(dateString)) {
+            return dateString;
+        }
+        return ''; // Or handle error appropriately
+    }
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    console.error("Error formatting date for input:", e);
+    return ''; // Fallback to empty string if formatting fails
   }
 };
 
@@ -79,6 +119,9 @@ function ParticipantInfo() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newParticipant, setNewParticipant] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false); // For create form submission state
+  const [editFormData, setEditFormData] = useState({});
+  const [originalEditData, setOriginalEditData] = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchParticipantInfo = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -143,8 +186,163 @@ function ParticipantInfo() {
     fetchParticipantInfo();
   }, [fetchParticipantInfo]);
 
-  const handleToggleDetails = (participantId) => {
-    setExpandedParticipantId(prevId => (prevId === participantId ? null : participantId));
+  const handleUpdateParticipant = useCallback(async (participantIdToUpdate, dataToUpdate) => {
+    if (Object.keys(dataToUpdate).length === 0) {
+      // console.log("No changes to update for participant:", participantIdToUpdate);
+      return; // No actual changes to submit
+    }
+    setIsUpdating(true);
+    setError(null);
+
+    if (accounts.length === 0 || !instance) {
+      setError("Authentication error. Cannot update participant.");
+      setIsUpdating(false);
+      return;
+    }
+
+    const request = {
+      scopes: [`${dataverseUrl}/.default`],
+      account: accounts[0],
+    };
+
+    try {
+      const response = await instance.acquireTokenSilent(request);
+      const token = response.accessToken;
+
+      // Prepare data: remove fields that shouldn't be sent (like OData ETag if not handled by server)
+      // and ensure correct data types (e.g., null for empty strings if backend expects it)
+      const payload = { ...dataToUpdate };
+      for (const key in payload) {
+        if (payload[key] === '') {
+           // For some fields, Dataverse might expect null instead of empty string
+           // For others, empty string is fine. This might need refinement based on specific field types.
+           // For now, let's assume empty strings are acceptable or should be explicitly nulled if not.
+           // Example: if a field is a lookup or number, empty string might cause error.
+        }
+        // Dates should be in YYYY-MM-DD format if they are date-only fields
+        // Booleans should be true/false
+      }
+      // Remove the ID field from the payload as it's part of the URL
+      delete payload[basicInfoFields.id];
+      // Remove OData ETag if present, as it's usually handled by headers or specific mechanisms
+      delete payload['@odata.etag'];
+
+
+      // Log the payload
+      console.log(`Updating participant ${participantIdToUpdate} with payload:`, JSON.stringify(payload, null, 2));
+
+      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations(${participantIdToUpdate})`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'OData-MaxVersion': '4.0',
+          'OData-Version': '4.0',
+          'If-Match': originalEditData['@odata.etag'] || '*' // Use ETag for optimistic concurrency, or '*' if not available
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!apiResponse.ok) {
+        const errData = await apiResponse.json();
+        console.error("Update failed with status:", apiResponse.status, errData);
+        setError(errData.error?.message || `Failed to update participant: ${apiResponse.status}`);
+      } else {
+        console.log("Successfully updated participant:", participantIdToUpdate);
+        // Refresh data to show changes
+        await fetchParticipantInfo(false); // Re-fetch without full page loading indicator
+        // Optionally, provide user feedback like a success toast/message
+      }
+    } catch (err) {
+      console.error("Update operation failed:", err);
+      if (err.name === "InteractionRequiredAuthError" || err.name === "BrowserAuthError") {
+        setError("Token acquisition failed for update. Please try signing out and signing back in.");
+      } else {
+        setError(err.message || "An unexpected error occurred during update.");
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [accounts, instance, fetchParticipantInfo, originalEditData]);
+
+
+  const handleToggleDetails = useCallback(async (participantId) => {
+    const currentlyExpandedId = expandedParticipantId;
+    const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
+
+    // If a row was expanded and it's different from the one being toggled, or if we are closing a row
+    if (currentlyExpandedId && currentlyExpandedId !== participantId) {
+      const changes = {};
+      for (const key in editFormData) {
+        if (editFormData[key] !== originalEditData[key]) {
+          changes[key] = editFormData[key];
+        }
+      }
+      if (Object.keys(changes).length > 0) {
+        await handleUpdateParticipant(currentlyExpandedId, changes);
+      }
+    } else if (currentlyExpandedId && newExpandedId === null) { // Closing the currently open row
+        const changes = {};
+        for (const key in editFormData) {
+            // Ensure proper comparison, especially for null/undefined vs empty string
+            const originalValue = originalEditData[key] === null || originalEditData[key] === undefined ? "" : originalEditData[key];
+            const currentValue = editFormData[key] === null || editFormData[key] === undefined ? "" : editFormData[key];
+            if (currentValue !== originalValue) {
+                // Handle boolean specifically: if original was null and current is false, it's a change.
+                if (typeof originalEditData[key] === 'boolean' || typeof editFormData[key] === 'boolean') {
+                    if (Boolean(editFormData[key]) !== Boolean(originalEditData[key])) {
+                         changes[key] = editFormData[key] === null ? null : Boolean(editFormData[key]);
+                    }
+                } else if (creationFormFields[key]?.type === 'date' || (typeof editFormData[key] === 'string' && editFormData[key].match(/^\\d{4}-\\d{2}-\\d{2}$/))) {
+                    // For dates, ensure they are compared correctly, possibly after formatting to a common standard if necessary
+                    // Assuming dates are stored as YYYY-MM-DD strings from input[type=date]
+                    if (formatDateForInput(editFormData[key]) !== formatDateForInput(originalEditData[key])) {
+                        changes[key] = editFormData[key] ? formatDateForInput(editFormData[key]) : null;
+                    }
+                }
+                else {
+                    changes[key] = editFormData[key];
+                }
+            }
+        }
+        if (Object.keys(changes).length > 0) {
+            await handleUpdateParticipant(currentlyExpandedId, changes);
+        }
+    }
+
+
+    setExpandedParticipantId(newExpandedId);
+
+    if (newExpandedId) {
+      const participantToEdit = participantData.find(p => p[basicInfoFields.id] === newExpandedId);
+      if (participantToEdit) {
+        // Initialize editFormData with all fields from the record, preparing for edits
+        const initialFormValues = {};
+        Object.keys(participantToEdit).forEach(key => {
+            // Format dates for input type="date"
+            if (typeof participantToEdit[key] === 'string' && participantToEdit[key].match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/)) {
+                 initialFormValues[key] = formatDateForInput(participantToEdit[key]);
+            } else {
+                initialFormValues[key] = participantToEdit[key] === null ? '' : participantToEdit[key];
+            }
+        });
+        setEditFormData(initialFormValues);
+        setOriginalEditData({ ...participantToEdit }); // Store a copy of the original record for comparison
+      }
+    } else {
+      setEditFormData({});
+      setOriginalEditData({});
+    }
+  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData]);
+
+
+  const handleEditFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : (type === 'date' && value === '' ? null : value)
+    }));
   };
 
   const handleCreateFormChange = (e) => {
@@ -253,7 +451,7 @@ function ParticipantInfo() {
   }
 
   // Main error display (could be separate from form error)
-  const mainError = error && !isSubmitting ? error : null;
+  const mainError = error && !isSubmitting && !isUpdating ? error : null;
 
 
   return (
@@ -376,21 +574,75 @@ function ParticipantInfo() {
                           <div className="text-sm text-gray-800">
                             <h4 className="font-semibold text-lg mb-3 text-indigo-700">
                               Full Details for {record[basicInfoFields.firstName]} {record[basicInfoFields.lastName]}:
+                              {isUpdating && expandedParticipantId === currentRecordId && <span className="ml-2 text-sm text-gray-500">(Saving...)</span>}
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
-                              {Object.entries(record).map(([key, value]) => {
-                                // Exclude already displayed basic info, internal OData fields, and the ID field itself from this detailed list
+                              {Object.entries(editFormData).map(([key, value]) => {
+                                // Exclude basic info already in table, internal OData fields, and the ID field itself
                                 if (!key.startsWith('@odata.') && !key.startsWith('_') &&
-                                    key !== basicInfoFields.firstName &&
-                                    key !== basicInfoFields.lastName &&
-                                    key !== basicInfoFields.dob &&
-                                    key !== basicInfoFields.id) {
+                                    key !== basicInfoFields.id && // Exclude the main ID field
+                                    key !== basicInfoFields.firstName && // Already in summary row
+                                    key !== basicInfoFields.lastName &&  // Already in summary row
+                                    key !== basicInfoFields.dob) {       // Already in summary row
+                                  
+                                  let inputType = "text";
+                                  let inputValue = value === null ? '' : value;
+                                  let isCheckbox = false;
+
+                                  // Determine input type based on value type or known field configurations
+                                  if (typeof originalEditData[key] === 'boolean') {
+                                    inputType = "checkbox";
+                                    isCheckbox = true;
+                                    inputValue = Boolean(value);
+                                  } else if (creationFormFields[key]?.type === 'date' || (typeof value === 'string' && value.match(/^\\d{4}-\\d{2}-\\d{2}$/)) || (originalEditData[key] && typeof originalEditData[key] === 'string' && originalEditData[key].match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/))) {
+                                    inputType = "date";
+                                    inputValue = formatDateForInput(value);
+                                  } else if (creationFormFields[key]?.type === 'number' || typeof originalEditData[key] === 'number') {
+                                    inputType = "number";
+                                  } else if (creationFormFields[key]?.type === 'email') {
+                                    inputType = "email";
+                                  } else if (creationFormFields[key]?.type === 'tel') {
+                                    inputType = "tel";
+                                  }
+                                  // Add more type detections if necessary (e.g., from a more detailed schema)
+
+                                  // Fields that should not be editable (e.g. createdon, modifiedon, etc.)
+                                  const readOnlyFields = ['createdon', 'modifiedon', 'versionnumber', 'ownerid', 'statuscode', 'statecode'];
+                                  if (readOnlyFields.some(roField => key.toLowerCase().includes(roField))) {
+                                    return (
+                                      <div key={key} className="py-1">
+                                        <strong className="block font-medium text-gray-600 capitalize">
+                                          {key.replace('cr648_', '').replace(/([A-Z])/g, ' $1').trim()}:
+                                        </strong>
+                                        <span className="block text-gray-800 mt-0.5">{valueToString(originalEditData[key])}</span>
+                                      </div>
+                                    );
+                                  }
+
                                   return (
                                     <div key={key} className="py-1">
-                                      <strong className="block font-medium text-gray-600 capitalize">
+                                      <label htmlFor={key} className="block font-medium text-gray-600 capitalize">
                                         {key.replace('cr648_', '').replace(/([A-Z])/g, ' $1').trim()}:
-                                      </strong>
-                                      <span className="block text-gray-800 mt-0.5">{valueToString(value)}</span>
+                                      </label>
+                                      {isCheckbox ? (
+                                        <input
+                                          type="checkbox"
+                                          id={key}
+                                          name={key}
+                                          checked={inputValue}
+                                          onChange={handleEditFormChange}
+                                          className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                        />
+                                      ) : (
+                                        <input
+                                          type={inputType}
+                                          id={key}
+                                          name={key}
+                                          value={inputValue}
+                                          onChange={handleEditFormChange}
+                                          className="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        />
+                                      )}
                                     </div>
                                   );
                                 }
