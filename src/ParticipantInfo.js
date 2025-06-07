@@ -111,7 +111,8 @@ const creationFormFields = {
 
 function ParticipantInfo() {
   const { instance, accounts } = useMsal();
-  const [participantData, setParticipantData] = useState([]);
+  const [allParticipantData, setAllParticipantData] = useState([]); // Store all fetched data
+  const [participantData, setParticipantData] = useState([]); // Data to display (can be filtered)
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedParticipantId, setExpandedParticipantId] = useState(null);
@@ -159,10 +160,12 @@ function ParticipantInfo() {
         const errData = await apiResponse.json();
         console.error("Fetch failed with status:", apiResponse.status, errData);
         setError(errData.error?.message || `Failed to fetch participant information: ${apiResponse.status}`);
+        setAllParticipantData([]); // Clear all data on error
         setParticipantData([]);
       } else {
         const data = await apiResponse.json();
-        setParticipantData(data.value || []);
+        setAllParticipantData(data.value || []); // Populate all data
+        setParticipantData(data.value || []);    // Initially display all data
         if (data.value && data.value.length > 0) {
           console.log("First participant record from API:", data.value[0]);
           console.log("Keys of first participant record:", Object.keys(data.value[0]));
@@ -176,6 +179,7 @@ function ParticipantInfo() {
       } else {
         setError(err.message || "An unexpected error occurred.");
       }
+      setAllParticipantData([]); // Clear all data on error
       setParticipantData([]);
     } finally {
       if (showLoading) setIsLoading(false);
@@ -410,10 +414,10 @@ function ParticipantInfo() {
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchTerm.trim() === '') {
-        // If search term is empty, refetch all participants
-        fetchParticipantInfo();
+        // If search term is empty, display all participants from the stored full list
+        setParticipantData(allParticipantData);
       } else {
-        const filteredData = participantData.filter(participant => {
+        const filteredData = allParticipantData.filter(participant => { // Filter from allParticipantData
           return Object.values(participant).some(value =>
             valueToString(value).toLowerCase().includes(searchTerm.toLowerCase())
           );
@@ -425,7 +429,7 @@ function ParticipantInfo() {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, participantData, fetchParticipantInfo]);
+  }, [searchTerm, allParticipantData]); // Depend on searchTerm and allParticipantData
 
 
   return (
