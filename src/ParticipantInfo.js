@@ -120,7 +120,7 @@ function ParticipantInfo() {
   const [newParticipant, setNewParticipant] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false); // For create form submission state
   const [editFormData, setEditFormData] = useState({});
-  const [originalEditData, setOriginalEditData] = useState({});
+  const [originalEditData, _setOriginalEditData] = useState({}); // Prefix setter with _
   const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchParticipantInfo = useCallback(async (showLoading = true) => {
@@ -259,15 +259,10 @@ function ParticipantInfo() {
         console.error("Update failed with status:", apiResponse.status, errData);
         setError(errData.error?.message || `Failed to update participant information: ${apiResponse.status}`);
       } else {
-        // Optimistically update the participant data in the state
-        setParticipantData((prevData) => 
-          prevData.map((participant) => 
-            participant[basicInfoFields.id] === participantIdToUpdate 
-              ? { ...participant, ...payload } // Merge updated fields
-              : participant
-          )
-        );
-        setExpandedParticipantId(null); // Collapse details view on update
+        console.log("Update successful for participant:", participantIdToUpdate);
+        setError(null);
+        // Optionally, refetch the participant info or update the state to reflect changes
+        fetchParticipantInfo(false); // false to not show loading spinner
       }
     } catch (err) {
       console.error("Update operation failed:", err);
@@ -275,35 +270,80 @@ function ParticipantInfo() {
     } finally {
       setIsUpdating(false);
     }
-  }, [accounts, instance, originalEditData]); // Added originalEditData to dependencies
+  }, [accounts, instance, fetchParticipantInfo, originalEditData]);
 
-  const handleCreateFormChange = (e) => {
-    const { name, value } = e.target;
-    setNewParticipant((prev) => ({ ...prev, [name]: value }));
-  };
+
+  const handleToggleDetails = useCallback(async (participantId) => {
+    const currentlyExpandedId = expandedParticipantId;
+    const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
+
+    // If a row was expanded and it's different from the one being toggled (i.e., switching rows)
+    if (currentlyExpandedId && currentlyExpandedId !== participantId) {
+      const changes = {};
+      for (const key in editFormData) {
+        if (editFormData[key] !== originalEditData[key]) {
+          changes[key] = editFormData[key];
+        }
+      }
+      if (Object.keys(changes).length > 0) {
+        console.log('Saving changes for (switch):', currentlyExpandedId, changes);
+        await handleUpdateParticipant(currentlyExpandedId, changes); // Ensure this call is present and correct
+      }
+    } else if (currentlyExpandedId && newExpandedId === null) { // Closing the currently open row
+        const changes = {};
+        for (const key in editFormData) {
+            if (editFormData[key] !== originalEditData[key]) { 
+                changes[key] = editFormData[key]; 
+            }
+        }
+        if (Object.keys(changes).length > 0) {
+            console.log('Saving changes for (close):', currentlyExpandedId, changes);
+            await handleUpdateParticipant(currentlyExpandedId, changes); // Ensure this call is present and correct
+        }
+    }
+
+
+    setExpandedParticipantId(newExpandedId);
+
+    if (newExpandedId) {
+      const participantToEdit = participantData.find(p => p[basicInfoFields.id] === newExpandedId);
+      if (participantToEdit) {
+        const initialFormValues = {};
+        Object.keys(participantToEdit).forEach(key => {
+            if (typeof participantToEdit[key] === 'string' && participantToEdit[key].match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)) {
+              initialFormValues[key] = formatDateForInput(participantToEdit[key]);
+            } else {
+              initialFormValues[key] = participantToEdit[key];
+            }
+        });
+        setEditFormData(initialFormValues);
+        _setOriginalEditData({ ...participantToEdit }); // Use prefixed setter
+      }
+    } else {
+      setEditFormData({});
+      _setOriginalEditData({}); // Use prefixed setter
+    }
+  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData, basicInfoFields]); // basicInfoFields was missing, added it back
+
 
   const handleEditFormChange = (e) => {
     const { name, value, type, checked } = e.target;
-    let newValue = value;
 
-    // Special handling for boolean fields (checkboxes)
+    // Special handling for checkbox to ensure boolean true/false is sent
     if (type === 'checkbox') {
-      newValue = checked;
-    } 
-    // For date fields, ensure the value is in the correct format or null
-    else if (name === basicInfoFields.dob) {
-      newValue = value ? new Date(value).toISOString() : null;
+      setEditFormData((prevData) => ({
+        ...prevData,
+        [name]: checked,
+      }));
+    } else {
+      setEditFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
     }
-    // For number fields, convert empty values to null
-    else if (type === 'number' && value === '') {
-      newValue = null;
-    }
-
-    setEditFormData((prev) => ({ ...prev, [name]: newValue }));
   };
 
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
+  const handleCreateParticipant = useCallback(async () => {
     setIsSubmitting(true);
     setError(null);
 
@@ -323,23 +363,15 @@ function ParticipantInfo() {
       const token = response.accessToken;
 
       const payload = { ...newParticipant };
-      // Handle empty strings for nullable fields (e.g., number, boolean)
       for (const key in payload) {
         if (payload[key] === '') {
-          // Prioritize creationFormFields for type info
-          if (creationFormFields[key]) {
-            if (creationFormFields[key].type === 'number') {
-              payload[key] = null;
-            } else if (creationFormFields[key].type === 'checkbox') { // Assuming checkbox implies boolean
-              payload[key] = null; // Or false, depending on Dataverse nullable boolean handling
-            }
-            // For other types like 'text', 'email', 'tel', an empty string is often acceptable.
-            // Date fields are handled by handleEditFormChange to be null if empty.
-          }
-          // Fallback to null for unknown types
-          else {
+          // For empty strings, decide based on field type
+          if (creationFormFields[key]?.type === 'number') {
             payload[key] = null;
+          } else if (creationFormFields[key]?.type === 'checkbox') {
+            payload[key] = false; // Or null, depending on desired default
           }
+          // Strings and other types can remain as empty strings if that's the desired value
         }
       }
 
@@ -359,10 +391,11 @@ function ParticipantInfo() {
         console.error("Creation failed with status:", apiResponse.status, errData);
         setError(errData.error?.message || `Failed to create participant: ${apiResponse.status}`);
       } else {
-        const createdParticipant = await apiResponse.json();
-        setParticipantData((prevData) => [...prevData, createdParticipant]);
+        console.log("Participant created successfully:", await apiResponse.json());
+        setError(null);
         setIsCreateModalOpen(false);
-        setNewParticipant({});
+        setNewParticipant({}); // Reset new participant state
+        fetchParticipantInfo(false); // Refresh list without loading spinner
       }
     } catch (err) {
       console.error("Creation operation failed:", err);
@@ -370,229 +403,106 @@ function ParticipantInfo() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [accounts, instance, newParticipant, fetchParticipantInfo]);
 
-  // Filtered data for display, based on search term
-  const filteredParticipantData = participantData.filter((participant) => {
-    const fullName = `${participant[basicInfoFields.firstName]} ${participant[basicInfoFields.lastName]}`.toLowerCase();
-    return fullName.includes(searchTerm.toLowerCase());
-  });
 
-  const handleToggleDetails = (participantId) => {
-    setExpandedParticipantId((prevId) => (prevId === participantId ? null : participantId));
-  };
+  // Debounced search effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchTerm.trim() === '') {
+        // If search term is empty, refetch all participants
+        fetchParticipantInfo();
+      } else {
+        const filteredData = participantData.filter(participant => {
+          return Object.values(participant).some(value =>
+            valueToString(value).toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        });
+        setParticipantData(filteredData);
+      }
+    }, 300); // Adjust debounce delay as needed
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, participantData, fetchParticipantInfo]);
+
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Participant Information</h1>
-
-      <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div>
+      <h1>Participant Information</h1>
+      {error && <div className="error">{error}</div>}
+      <div>
         <input
           type="text"
-          placeholder="Search by first or last name..."
-          className="w-full sm:w-2/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          placeholder="Search participants..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <button
-          onClick={() => { setIsCreateModalOpen(true); setError(null); setNewParticipant({}); }}
-          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
-          Create New Participant
-        </button>
+        <button onClick={() => setIsCreateModalOpen(true)}>Create New Participant</button>
       </div>
-      
-      {error && (
-        <div className="mb-4 p-3 text-red-700 bg-red-100 border border-red-400 rounded-md">
-          Error: {error}
-        </div>
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Date of Birth</th>
+              <th>Email</th>
+              <th>Phone Number</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {participantData.map(participant => (
+              <tr key={participant[basicInfoFields.id]}>
+                <td>{valueToString(participant[basicInfoFields.firstName])}</td>
+                <td>{valueToString(participant[basicInfoFields.lastName])}</td>
+                <td>{formatDate(participant[basicInfoFields.dob])}</td>
+                <td>{valueToString(participant['cr648_emailaddress'])}</td>
+                <td>{valueToString(participant['cr648_phonenumber'])}</td>
+                <td>
+                  <button onClick={() => handleToggleDetails(participant[basicInfoFields.id])}>
+                    {expandedParticipantId === participant[basicInfoFields.id] ? 'Hide Details' : 'View Details'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       {/* Create Participant Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center p-4">
-          <div className="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-lg max-h-full overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-6 text-gray-700">Create New Participant</h2>
-            {error && isSubmitting && ( // Show error specific to form submission
-                <div className="mb-4 p-3 text-red-700 bg-red-100 border border-red-400 rounded-md">
-                    Error: {error}
-                </div>
-            )}
-            <form onSubmit={handleCreateSubmit}>
-              {Object.entries(creationFormFields).map(([fieldName, fieldConfig]) => (
-                <div className="mb-4" key={fieldName}>
-                  <label htmlFor={fieldName} className="block text-sm font-medium text-gray-700 mb-1">
-                    {fieldConfig.label}{fieldConfig.required && <span className="text-red-500">*</span>}
-                  </label>
+        <div className="modal">
+          <h2>Create Participant</h2>
+          {error && <div className="error">{error}</div>}
+          <form onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }}>
+            {Object.keys(creationFormFields).map(fieldKey => {
+              const field = creationFormFields[fieldKey];
+              return (
+                <div key={fieldKey}>
+                  <label>{field.label}{field.required ? '*' : ''}</label>
                   <input
-                    type={fieldConfig.type}
-                    id={fieldName}
-                    name={fieldName}
-                    value={newParticipant[fieldName] || ''}
-                    onChange={handleCreateFormChange}
-                    required={fieldConfig.required}
-                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    type={field.type}
+                    name={fieldKey}
+                    value={newParticipant[fieldKey] || ''}
+                    onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.value })}
+                    required={field.required}
                   />
                 </div>
-              ))}
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => { setIsCreateModalOpen(false); setError(null); }}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Create Participant'}
-                </button>
-              </div>
-            </form>
-          </div>
+              );
+            })}
+            <div>
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Create Participant'}
+              </button>
+              <button type="button" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
+            </div>
+          </form>
         </div>
-      )}
-
-      {/* Existing table display */}
-      {filteredParticipantData.length > 0 ? (
-        <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
-          <table className="min-w-full bg-white divide-y divide-gray-200">
-            <thead className="bg-gray-100 text-gray-700 sticky top-0 z-10">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap">First Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap">Last Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap">Date of Birth</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider sticky right-0 bg-gray-100 z-20">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {/* Ensure no whitespace text nodes directly inside tbody to prevent hydration errors */}
-              {filteredParticipantData.map((record) => {
-                const currentRecordId = record[basicInfoFields.id];
-                // Log details for each record to debug expansion issue
-                // console.log(`Record Map - ID: '${currentRecordId}', Type: ${typeof currentRecordId} --- Expanded ID: '${expandedParticipantId}', Type: ${typeof expandedParticipantId} --- Match: ${expandedParticipantId === currentRecordId}`);
-
-                return (
-                  <React.Fragment key={currentRecordId || Math.random()}> {/* Fallback key if ID is undefined, though not ideal */}
-                    <tr className="hover:bg-gray-50 transition-colors duration-150">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{record[basicInfoFields.firstName] || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{record[basicInfoFields.lastName] || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatDate(record[basicInfoFields.dob])}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm sticky right-0 bg-white sm:bg-transparent z-10">
-                        <button
-                          onClick={() => {
-                            // console.log(`Button Click - Toggling details for ID: '${currentRecordId}'`);
-                            handleToggleDetails(currentRecordId);
-                          }}
-                          className="text-indigo-600 hover:text-indigo-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded"
-                          aria-expanded={expandedParticipantId === record[basicInfoFields.id]}
-                          aria-controls={`details-${record[basicInfoFields.id]}`}
-                        >
-                          {expandedParticipantId === record[basicInfoFields.id] ? 'Hide Details' : 'View Details'}
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedParticipantId === record[basicInfoFields.id] && (
-                      <tr id={`details-${record[basicInfoFields.id]}`}>
-                        <td colSpan="4" className="px-6 py-4 bg-indigo-50 border-t border-indigo-200">
-                          <div className="text-sm text-gray-800">
-                            <h4 className="font-semibold text-lg mb-3 text-indigo-700">
-                              Full Details for {record[basicInfoFields.firstName]} {record[basicInfoFields.lastName]}:
-                              {isUpdating && expandedParticipantId === currentRecordId && <span className="ml-2 text-sm text-gray-500">(Saving...)</span>}
-                            </h4>
-                            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
-                              {Object.entries(editFormData).map(([key, value]) => {
-                                // Exclude basic info already in table, internal OData fields, and the ID field itself
-                                if (!key.startsWith('@odata.') && !key.startsWith('_') &&
-                                    key !== basicInfoFields.id && // Exclude the main ID field
-                                    key !== basicInfoFields.firstName && // Already in summary row
-                                    key !== basicInfoFields.lastName &&  // Already in summary row
-                                    key !== basicInfoFields.dob) {       // Already in summary row
-                                  
-                                  let inputType = "text";
-                                  let inputValue = value === null ? '' : value;
-                                  let isCheckbox = false;
-
-                                  // Determine input type based on value type or known field configurations
-                                  if (typeof originalEditData[key] === 'boolean') {
-                                    inputType = "checkbox";
-                                    isCheckbox = true;
-                                    inputValue = Boolean(value);
-                                  } else if (creationFormFields[key]?.type === 'date' || (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) || (originalEditData[key] && typeof originalEditData[key] === 'string' && originalEditData[key].match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/))) {
-                                    inputType = "date";
-                                    inputValue = formatDateForInput(value);
-                                  } else if (creationFormFields[key]?.type === 'number' || typeof originalEditData[key] === 'number') {
-                                    inputType = "number";
-                                  } else if (creationFormFields[key]?.type === 'email') {
-                                    inputType = "email";
-                                  } else if (creationFormFields[key]?.type === 'tel') {
-                                    inputType = "tel";
-                                  }
-                                  // Add more type detections if necessary (e.g., from a more detailed schema)
-
-                                  // Fields that should not be editable (e.g. createdon, modifiedon, etc.)
-                                  const readOnlyFields = ['createdon', 'modifiedon', 'versionnumber', 'ownerid', 'statuscode', 'statecode'];
-                                  if (readOnlyFields.some(roField => key.toLowerCase().includes(roField))) {
-                                    return (
-                                      <div key={key} className="py-1">
-                                        <strong className="block font-medium text-gray-600 capitalize">
-                                          {key.replace('cr648_', '').replace(/([A-Z])/g, ' $1').trim()}:
-                                        </strong>
-                                        <span className="block text-gray-800 mt-0.5">{valueToString(originalEditData[key])}</span>
-                                      </div>
-                                    );
-                                  }
-
-                                  return (
-                                    <div key={key} className="py-1">
-                                      <label htmlFor={key} className="block font-medium text-gray-600 capitalize">
-                                        {key.replace('cr648_', '').replace(/([A-Z])/g, ' $1').trim()}:
-                                      </label>
-                                      {isCheckbox ? (
-                                        <input
-                                          type="checkbox"
-                                          id={key}
-                                          name={key}
-                                          checked={inputValue}
-                                          onChange={handleEditFormChange}
-                                          className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                        />
-                                      ) : (
-                                        <input
-                                          type={inputType}
-                                          id={key}
-                                          name={key}
-                                          value={inputValue}
-                                          onChange={handleEditFormChange}
-                                          className="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                        />
-                                      )}
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p className="text-gray-600 mt-4">
-          {participantData.length > 0 && filteredParticipantData.length === 0 
-            ? 'No participants match your search criteria.' 
-            : isLoading ? 'Loading...' : 'No participant information found.'} 
-        </p>
       )}
     </div>
   );
