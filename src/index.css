@@ -215,3 +215,69 @@
     }
   }
 }
+
+/* Removed Tailwind directives and @apply rules */
+/* Retained essential base styles and mobile-friendly adjustments */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent text size adjustment on orientation change in iOS */
+  -webkit-text-size-adjust: 100%;
+  /* Base background and text color, Tailwind will override if body classes are set in App.js or similar */
+  background-color: #f7fafc; /* Equivalent to Tailwind's bg-gray-100 */
+  color: #1a202c; /* Equivalent to Tailwind's text-gray-900 */
+  margin: 0; /* Ensure no default margin */
+  padding: 0; /* Ensure no default padding */
+  box-sizing: border-box; /* Apply a more intuitive box model */
+}
+
+*, *::before, *::after {
+  box-sizing: inherit; /* Inherit box-sizing for all elements */
+}
+
+#root {
+  min-height: 100vh; /* Ensure the app takes at least the full viewport height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* General responsive typography - consider supplementing with Tailwind's responsive text utilities */
+html {
+  font-size: 16px; /* Base font size for desktop */
+}
+
+@media (max-width: 768px) { /* Tablets */
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) { /* Mobile phones */
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Remove default spinner from number inputs for better mobile UX */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield; /* Standard */
+}
+
+/* Basic accessibility improvement for focus states - Tailwind's focus utilities are more comprehensive */
+*:focus {
+  outline: 2px solid transparent; /* Remove default outline */
+  outline-offset: 2px;
+  /* Consider using Tailwind's focus:ring utilities for better, consistent focus indicators */
+}
+
+/* Further Tailwind CSS customizations and utilities are managed in tailwind.css and tailwind.config.js */

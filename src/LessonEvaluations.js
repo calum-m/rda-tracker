@@ -4,7 +4,7 @@ import { useMsal } from "@azure/msal-react";
 // Replace this with your Dataverse URL
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
 
-const DataverseCaller = () => {
+const LessonEvaluations = () => {
   const { instance, accounts } = useMsal();
   const [progressRecords, setProgressRecords] = useState([]);
   const [editingId, setEditingId] = useState(null); // ID of the record being edited
@@ -365,4 +365,4 @@ const DataverseCaller = () => {
   );
 };
 
-export default DataverseCaller;
+export default LessonEvaluations;
