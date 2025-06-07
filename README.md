@@ -1,71 +1,112 @@
-# Getting Started with Create React App
+# RDA Tracker Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This React application is designed to track and manage information for an RDA (Riding for the Disabled Association) group. It provides functionalities for managing participant information and lesson evaluations, leveraging Azure Active Directory for authentication and Microsoft Dataverse as the backend data store. The application is styled with Tailwind CSS and is intended to be deployed as an Azure Static Web App.
 
-## Available Scripts
+## Features
+
+*   **Authentication**: Secure login via Azure AD (MSAL).
+*   **Participant Information Management (`/participant-info`)**:
+    *   View a list of all participants.
+    *   Search for participants by first or last name.
+    *   Create new participant records through a modal form.
+    *   View detailed information for each participant.
+    *   Inline editing of participant details directly in the expanded view, with changes saved to Dataverse.
+    *   Responsive design for use on various devices.
+*   **Lesson Evaluations Management (`/lesson-evaluations`)**:
+    *   View a list of lesson evaluations.
+    *   Search and filter evaluations by lesson plan, date range, participant evaluation content, and coach name.
+    *   Create new lesson evaluation records.
+    *   Inline editing of lesson evaluation details.
+    *   Responsive design.
+*   **Responsive UI**: The application is built with Tailwind CSS and aims for a good user experience on desktop, tablet, and mobile devices.
+
+## Tech Stack
+
+*   **Frontend**: React, React Router
+*   **Authentication**: Microsoft Authentication Library (MSAL) for React (`@azure/msal-react`, `@azure/msal-browser`)
+*   **Data Storage**: Microsoft Dataverse (accessed via Web API)
+*   **Styling**: Tailwind CSS
+*   **Deployment**: Azure Static Web Apps (intended)
+
+## Project Structure
+
+*   `public/`: Contains static assets and `index.html`.
+*   `src/`: Contains the React application source code.
+    *   `App.js`: Main application component, handles routing and overall layout.
+    *   `index.js`: Entry point for the React application, MSAL Provider setup.
+    *   `authConfig.js`: Configuration for MSAL.
+    *   `ParticipantInfo.js`: Component for managing participant data.
+    *   `LessonEvaluations.js`: Component for managing lesson evaluation data.
+    *   `index.css`: Global base styles.
+    *   `tailwind.css`: Tailwind CSS directives.
+*   `tailwind.config.js`: Configuration for Tailwind CSS.
+*   `package.json`: Project dependencies and scripts.
+
+## Getting Started
+
+### Prerequisites
+
+*   Node.js and npm (or yarn) installed.
+*   An Azure AD application registration with appropriate permissions for Dataverse.
+*   A Dataverse environment with the required tables (`cr648_participantinformations`, `cr648_lessonevaluations`) and fields.
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd rda-tracker
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+    or
+    ```bash
+    yarn install
+    ```
+
+3.  **Configure MSAL and Dataverse URL:**
+    *   Update the `msalConfig` in `src/authConfig.js` with your Azure AD application details (client ID, authority, tenant ID).
+    *   Update the `dataverseUrl` constant in `src/ParticipantInfo.js` and `src/LessonEvaluations.js` to point to your Dataverse environment URL (e.g., `https://yourorg.crm.dynamics.com`).
+        *   *Note: This should ideally be centralized in a configuration file or environment variables.*
+
+### Available Scripts
 
 In the project directory, you can run:
 
-### `npm start`
+*   **`npm start`**:
+    Runs the app in development mode. Open [http://localhost:3000](http://localhost:3000) to view it in your browser. The page will reload when you make changes.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+*   **`npm test`**:
+    Launches the test runner in interactive watch mode.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+*   **`npm run build`**:
+    Builds the app for production to the `build` folder. It correctly bundles React in production mode and optimizes the build for the best performance.
 
-### `npm test`
+*   **`npm run eject`**:
+    **Note: this is a one-way operation. Once you `eject`, you can't go back!**
+    This command removes the single build dependency (react-scripts) and copies all configuration files (webpack, Babel, ESLint, etc.) and transitive dependencies into your project, giving you full control.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Deployment
 
-### `npm run build`
+This application is designed to be deployed as an Azure Static Web App. The `npm run build` command creates a `build` directory with the static assets ready for deployment.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Refer to the [Azure Static Web Apps documentation](https://docs.microsoft.com/azure/static-web-apps/) for deployment instructions.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Contributing
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Please refer to the project's contribution guidelines if available.
 
 ## Learn More
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+*   [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started)
+*   [React documentation](https://reactjs.org/)
+*   [MSAL React documentation](https://github.com/AzureAD/microsoft-authentication-library-for-js/tree/dev/lib/msal-react)
+*   [Dataverse Web API documentation](https://docs.microsoft.com/powerapps/developer/data-platform/webapi/overview)
+*   [Tailwind CSS documentation](https://tailwindcss.com/docs)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# rda-tracker
+*This README was last updated on 7 June 2025.*

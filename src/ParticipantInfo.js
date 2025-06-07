@@ -247,11 +247,9 @@ function ParticipantInfo() {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Type': 'application/json',
           'OData-MaxVersion': '4.0',
           'OData-Version': '4.0',
-          'If-Match': originalEditData['@odata.etag'] || '*' // Use ETag for optimistic concurrency, or '*' if not available
         },
         body: JSON.stringify(payload),
       });
@@ -259,108 +257,58 @@ function ParticipantInfo() {
       if (!apiResponse.ok) {
         const errData = await apiResponse.json();
         console.error("Update failed with status:", apiResponse.status, errData);
-        setError(errData.error?.message || `Failed to update participant: ${apiResponse.status}`);
+        setError(errData.error?.message || `Failed to update participant information: ${apiResponse.status}`);
       } else {
-        console.log("Successfully updated participant:", participantIdToUpdate);
-        // Refresh data to show changes
-        await fetchParticipantInfo(false); // Re-fetch without full page loading indicator
-        // Optionally, provide user feedback like a success toast/message
+        // Optimistically update the participant data in the state
+        setParticipantData((prevData) => 
+          prevData.map((participant) => 
+            participant[basicInfoFields.id] === participantIdToUpdate 
+              ? { ...participant, ...payload } // Merge updated fields
+              : participant
+          )
+        );
+        setExpandedParticipantId(null); // Collapse details view on update
       }
     } catch (err) {
       console.error("Update operation failed:", err);
-      if (err.name === "InteractionRequiredAuthError" || err.name === "BrowserAuthError") {
-        setError("Token acquisition failed for update. Please try signing out and signing back in.");
-      } else {
-        setError(err.message || "An unexpected error occurred during update.");
-      }
+      setError(err.message || "An unexpected error occurred during update.");
     } finally {
       setIsUpdating(false);
     }
-  }, [accounts, instance, fetchParticipantInfo, originalEditData, basicInfoFields, creationFormFields]);
+  }, [accounts, instance, originalEditData]); // Added originalEditData to dependencies
 
-
-  const handleToggleDetails = useCallback(async (participantId) => {
-    const currentlyExpandedId = expandedParticipantId;
-    const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
-
-    // If a row was expanded and it's different from the one being toggled (i.e., switching rows)
-    if (currentlyExpandedId && currentlyExpandedId !== participantId) {
-      const changes = {};
-      for (const key in editFormData) {
-        if (editFormData[key] !== originalEditData[key]) {
-          changes[key] = editFormData[key];
-        }
-      }
-      if (Object.keys(changes).length > 0) {
-        console.log('Saving changes for (switch):', currentlyExpandedId, changes);
-        await handleUpdateParticipant(currentlyExpandedId, changes);
-      }
-    } else if (currentlyExpandedId && newExpandedId === null) { // Closing the currently open row
-        const changes = {};
-        for (const key in editFormData) {
-            if (editFormData[key] !== originalEditData[key]) { // Corrected: Compare with originalEditData
-                changes[key] = editFormData[key]; // Corrected: Use editFormData[key]
-            }
-        }
-        if (Object.keys(changes).length > 0) {
-            console.log('Saving changes for (close):', currentlyExpandedId, changes);
-            await handleUpdateParticipant(currentlyExpandedId, changes);
-        }
-    }
-
-
-    setExpandedParticipantId(newExpandedId);
-
-    if (newExpandedId) {
-      const participantToEdit = participantData.find(p => p[basicInfoFields.id] === newExpandedId);
-      if (participantToEdit) {
-        // Initialize editFormData with all fields from the record, preparing for edits
-        const initialFormValues = {};
-        Object.keys(participantToEdit).forEach(key => {
-            // Format dates for input type="date"
-            if (typeof participantToEdit[key] === 'string' && participantToEdit[key].match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/)) {
-              initialFormValues[key] = formatDateForInput(participantToEdit[key]);
-            } else {
-              initialFormValues[key] = participantToEdit[key];
-            }
-        });
-        setEditFormData(initialFormValues);
-        setOriginalEditData({ ...participantToEdit }); // Store a copy of the original record for comparison
-      }
-    } else {
-      setEditFormData({});
-      setOriginalEditData({});
-    }
-  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData, basicInfoFields]);
-
+  const handleCreateFormChange = (e) => {
+    const { name, value } = e.target;
+    setNewParticipant((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleEditFormChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : (type === 'date' && value === '' ? null : value)
-    }));
-  };
+    let newValue = value;
 
-  const handleCreateFormChange = (e) => {
-    const { name, value, type } = e.target;
-    setNewParticipant(prev => ({
-      ...prev,
-      [name]: type === 'date' && value === '' ? null : value // Store empty date as null
-    }));
+    // Special handling for boolean fields (checkboxes)
+    if (type === 'checkbox') {
+      newValue = checked;
+    } 
+    // For date fields, ensure the value is in the correct format or null
+    else if (name === basicInfoFields.dob) {
+      newValue = value ? new Date(value).toISOString() : null;
+    }
+    // For number fields, convert empty values to null
+    else if (type === 'number' && value === '') {
+      newValue = null;
+    }
+
+    setEditFormData((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
-    if (Object.values(creationFormFields).some(field => field.required && !newParticipant[Object.keys(creationFormFields).find(key => creationFormFields[key] === field)])) {
-        alert("Please fill in all required fields.");
-        return;
-    }
     setIsSubmitting(true);
     setError(null);
 
     if (accounts.length === 0 || !instance) {
-      setError("Authentication error. Cannot submit form.");
+      setError("Authentication error. Cannot create participant.");
       setIsSubmitting(false);
       return;
     }
@@ -374,106 +322,89 @@ function ParticipantInfo() {
       const response = await instance.acquireTokenSilent(request);
       const token = response.accessToken;
 
-      // Prepare data for Dataverse (remove empty strings, convert to correct types if necessary)
-      const participantToCreate = { ...newParticipant };
-      for (const key in participantToCreate) {
-        if (participantToCreate[key] === '') {
-          delete participantToCreate[key]; // Dataverse expects missing fields, not empty strings for some types
-        }
-        // Ensure date is in YYYY-MM-DD format if it's a date field and not null
-        if (creationFormFields[key]?.type === 'date' && participantToCreate[key]) {
-            // Assuming newParticipant[key] is already in 'YYYY-MM-DD' from input type="date"
-            // If not, conversion would be needed here:
-            // const dateObj = new Date(participantToCreate[key]);
-            // participantToCreate[key] = dateObj.toISOString().split('T')[0];
+      const payload = { ...newParticipant };
+      // Handle empty strings for nullable fields (e.g., number, boolean)
+      for (const key in payload) {
+        if (payload[key] === '') {
+          // Prioritize creationFormFields for type info
+          if (creationFormFields[key]) {
+            if (creationFormFields[key].type === 'number') {
+              payload[key] = null;
+            } else if (creationFormFields[key].type === 'checkbox') { // Assuming checkbox implies boolean
+              payload[key] = null; // Or false, depending on Dataverse nullable boolean handling
+            }
+            // For other types like 'text', 'email', 'tel', an empty string is often acceptable.
+            // Date fields are handled by handleEditFormChange to be null if empty.
+          }
+          // Fallback to null for unknown types
+          else {
+            payload[key] = null;
+          }
         }
       }
-      
-      // Log the payload before sending
-      console.log("Submitting to Dataverse:", JSON.stringify(participantToCreate, null, 2));
 
       const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Type': 'application/json',
           'OData-MaxVersion': '4.0',
           'OData-Version': '4.0',
-          'Prefer': 'return=representation' // To get the created record back
         },
-        body: JSON.stringify(participantToCreate),
+        body: JSON.stringify(payload),
       });
 
       if (!apiResponse.ok) {
         const errData = await apiResponse.json();
-        console.error("Create failed with status:", apiResponse.status, errData);
+        console.error("Creation failed with status:", apiResponse.status, errData);
         setError(errData.error?.message || `Failed to create participant: ${apiResponse.status}`);
       } else {
-        const createdRecord = await apiResponse.json();
-        console.log("Successfully created participant:", createdRecord);
-        setNewParticipant({}); // Reset form
-        setIsCreateModalOpen(false); // Close modal
-        // Refresh data - either by re-fetching or adding to state
-        // For simplicity, re-fetch. For better UX, add to state directly if ID is returned.
-        fetchParticipantInfo(false); // Re-fetch without full page loading indicator
-        alert('Participant created successfully!');
+        const createdParticipant = await apiResponse.json();
+        setParticipantData((prevData) => [...prevData, createdParticipant]);
+        setIsCreateModalOpen(false);
+        setNewParticipant({});
       }
     } catch (err) {
-      console.error("Create operation failed:", err);
-      if (err.name === "InteractionRequiredAuthError" || err.name === "BrowserAuthError") {
-        setError("Token acquisition failed for creation. Please try signing out and signing back in.");
-      } else {
-        setError(err.message || "An unexpected error occurred during creation.");
-      }
+      console.error("Creation operation failed:", err);
+      setError(err.message || "An unexpected error occurred during creation.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Filtered data based on search term
-  const filteredParticipantData = participantData.filter(participant => {
-    const firstName = String(participant[basicInfoFields.firstName] || '').toLowerCase();
-    const lastName = String(participant[basicInfoFields.lastName] || '').toLowerCase();
-    const searchTermLower = searchTerm.toLowerCase();
-    return firstName.includes(searchTermLower) || lastName.includes(searchTermLower);
+  // Filtered data for display, based on search term
+  const filteredParticipantData = participantData.filter((participant) => {
+    const fullName = `${participant[basicInfoFields.firstName]} ${participant[basicInfoFields.lastName]}`.toLowerCase();
+    return fullName.includes(searchTerm.toLowerCase());
   });
 
-  if (isLoading && !isSubmitting) { // Don't show main loading if only submitting
-    return <div className="p-4 text-center">Loading participant information...</div>;
-  }
-
-  if (error) {
-    return <div className="p-4 text-red-600 bg-red-100 border border-red-400 rounded">Error: {error}</div>;
-  }
-
-  // Main error display (could be separate from form error)
-  const mainError = error && !isSubmitting && !isUpdating ? error : null;
-
+  const handleToggleDetails = (participantId) => {
+    setExpandedParticipantId((prevId) => (prevId === participantId ? null : participantId));
+  };
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-6 text-gray-800">Participant Information</h1>
 
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <input
           type="text"
           placeholder="Search by first or last name..."
-          className="w-2/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="w-full sm:w-2/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <button
           onClick={() => { setIsCreateModalOpen(true); setError(null); setNewParticipant({}); }}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
         >
           Create New Participant
         </button>
       </div>
       
-      {mainError && (
+      {error && (
         <div className="mb-4 p-3 text-red-700 bg-red-100 border border-red-400 rounded-md">
-          Error: {mainError}
+          Error: {error}
         </div>
       )}
 
@@ -528,17 +459,17 @@ function ParticipantInfo() {
 
       {/* Existing table display */}
       {filteredParticipantData.length > 0 ? (
-        <div className="overflow-x-auto shadow-md rounded-lg">
-          <table className="min-w-full bg-white">
-            <thead className="bg-gray-200 text-gray-700">
+        <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
+          <table className="min-w-full bg-white divide-y divide-gray-200">
+            <thead className="bg-gray-100 text-gray-700 sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">First Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Last Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Date of Birth</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap">First Name</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap">Last Name</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap">Date of Birth</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider sticky right-0 bg-gray-100 z-20">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 bg-white">
               {/* Ensure no whitespace text nodes directly inside tbody to prevent hydration errors */}
               {filteredParticipantData.map((record) => {
                 const currentRecordId = record[basicInfoFields.id];
@@ -551,7 +482,7 @@ function ParticipantInfo() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{record[basicInfoFields.firstName] || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{record[basicInfoFields.lastName] || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatDate(record[basicInfoFields.dob])}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm sticky right-0 bg-white sm:bg-transparent z-10">
                         <button
                           onClick={() => {
                             // console.log(`Button Click - Toggling details for ID: '${currentRecordId}'`);
@@ -573,7 +504,7 @@ function ParticipantInfo() {
                               Full Details for {record[basicInfoFields.firstName]} {record[basicInfoFields.lastName]}:
                               {isUpdating && expandedParticipantId === currentRecordId && <span className="ml-2 text-sm text-gray-500">(Saving...)</span>}
                             </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+                            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
                               {Object.entries(editFormData).map(([key, value]) => {
                                 // Exclude basic info already in table, internal OData fields, and the ID field itself
                                 if (!key.startsWith('@odata.') && !key.startsWith('_') &&
@@ -591,7 +522,7 @@ function ParticipantInfo() {
                                     inputType = "checkbox";
                                     isCheckbox = true;
                                     inputValue = Boolean(value);
-                                  } else if (creationFormFields[key]?.type === 'date' || (typeof value === 'string' && value.match(/^\\d{4}-\\d{2}-\\d{2}$/)) || (originalEditData[key] && typeof originalEditData[key] === 'string' && originalEditData[key].match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/))) {
+                                  } else if (creationFormFields[key]?.type === 'date' || (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) || (originalEditData[key] && typeof originalEditData[key] === 'string' && originalEditData[key].match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/))) {
                                     inputType = "date";
                                     inputValue = formatDateForInput(value);
                                   } else if (creationFormFields[key]?.type === 'number' || typeof originalEditData[key] === 'number') {
