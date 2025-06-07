@@ -323,7 +323,7 @@ function ParticipantInfo() {
       setEditFormData({});
       _setOriginalEditData({}); // Use prefixed setter
     }
-  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData, basicInfoFields]); // basicInfoFields was missing, added it back
+  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData]); // Removed basicInfoFields
 
 
   const handleEditFormChange = (e) => {
@@ -457,18 +457,56 @@ function ParticipantInfo() {
           </thead>
           <tbody>
             {participantData.map(participant => (
-              <tr key={participant[basicInfoFields.id]}>
-                <td>{valueToString(participant[basicInfoFields.firstName])}</td>
-                <td>{valueToString(participant[basicInfoFields.lastName])}</td>
-                <td>{formatDate(participant[basicInfoFields.dob])}</td>
-                <td>{valueToString(participant['cr648_emailaddress'])}</td>
-                <td>{valueToString(participant['cr648_phonenumber'])}</td>
-                <td>
-                  <button onClick={() => handleToggleDetails(participant[basicInfoFields.id])}>
-                    {expandedParticipantId === participant[basicInfoFields.id] ? 'Hide Details' : 'View Details'}
-                  </button>
-                </td>
-              </tr>
+              <React.Fragment key={participant[basicInfoFields.id]}>
+                <tr>
+                  <td>{valueToString(participant[basicInfoFields.firstName])}</td>
+                  <td>{valueToString(participant[basicInfoFields.lastName])}</td>
+                  <td>{formatDate(participant[basicInfoFields.dob])}</td>
+                  <td>{valueToString(participant['cr648_emailaddress'])}</td>
+                  <td>{valueToString(participant['cr648_phonenumber'])}</td>
+                  <td>
+                    <button onClick={() => handleToggleDetails(participant[basicInfoFields.id])}>
+                      {expandedParticipantId === participant[basicInfoFields.id] ? 'Hide Details' : 'View Details'}
+                    </button>
+                  </td>
+                </tr>
+                {expandedParticipantId === participant[basicInfoFields.id] && (
+                  <tr>
+                    <td colSpan="6"> {/* Adjusted colSpan to match number of headers */}
+                      <div className="p-4 bg-gray-100 rounded-b-md">
+                        <h3 className="text-lg font-semibold mb-2">Edit Participant Details</h3>
+                        {error && <div className="text-red-500 mb-2">{error}</div>}
+                        <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
+                          {Object.keys(creationFormFields).map(fieldKey => {
+                            const field = creationFormFields[fieldKey];
+                            // Skip non-editable or ID fields if necessary, though creationFormFields should be fine
+                            if (fieldKey === basicInfoFields.id) return null;
+
+                            return (
+                              <div key={fieldKey} className="flex flex-col">
+                                <label htmlFor={fieldKey} className="mb-1 text-sm font-medium text-gray-700">
+                                  {field.label}{field.required ? '*' : ''}
+                                </label>
+                                <input
+                                  type={field.type === 'checkbox' ? 'checkbox' : field.type}
+                                  id={fieldKey}
+                                  name={fieldKey}
+                                  checked={field.type === 'checkbox' ? (editFormData[fieldKey] || false) : undefined}
+                                  value={field.type !== 'checkbox' ? (editFormData[fieldKey] || '') : undefined}
+                                  onChange={handleEditFormChange}
+                                  className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                />
+                              </div>
+                            );
+                          })}
+                          {isUpdating && <p className="text-blue-500">Saving...</p>}
+                          {/* Save button is implicit via handleToggleDetails auto-save */}
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
