@@ -189,7 +189,7 @@ function ParticipantInfo() {
   const handleUpdateParticipant = useCallback(async (participantIdToUpdate, dataToUpdate) => {
     if (Object.keys(dataToUpdate).length === 0) {
       // console.log("No changes to update for participant:", participantIdToUpdate);
-      return; // No actual changes to submit
+      return;
     }
     setIsUpdating(true);
     setError(null);
@@ -209,18 +209,30 @@ function ParticipantInfo() {
       const response = await instance.acquireTokenSilent(request);
       const token = response.accessToken;
 
-      // Prepare data: remove fields that shouldn't be sent (like OData ETag if not handled by server)
-      // and ensure correct data types (e.g., null for empty strings if backend expects it)
       const payload = { ...dataToUpdate };
       for (const key in payload) {
-        if (payload[key] === '') {
-           // For some fields, Dataverse might expect null instead of empty string
-           // For others, empty string is fine. This might need refinement based on specific field types.
-           // For now, let's assume empty strings are acceptable or should be explicitly nulled if not.
-           // Example: if a field is a lookup or number, empty string might cause error.
+        const currentValue = payload[key];
+        const originalValueFromState = originalEditData[key];
+
+        if (currentValue === '') {
+          // Prioritize creationFormFields for type info
+          if (creationFormFields[key]) {
+            if (creationFormFields[key].type === 'number') {
+              payload[key] = null;
+            } else if (creationFormFields[key].type === 'checkbox') { // Assuming checkbox implies boolean
+              payload[key] = null; // Or false, depending on Dataverse nullable boolean handling
+            }
+            // For other types like 'text', 'email', 'tel', an empty string is often acceptable.
+            // Date fields are handled by handleEditFormChange to be null if empty.
+          }
+          // Fallback to originalValueFromState's type if not in creationFormFields
+          else if (typeof originalValueFromState === 'number') {
+            payload[key] = null;
+          } else if (typeof originalValueFromState === 'boolean') {
+            payload[key] = null; // Or false
+          }
+          // If it's a string field and empty, payload[key] remains ''.
         }
-        // Dates should be in YYYY-MM-DD format if they are date-only fields
-        // Booleans should be true/false
       }
       // Remove the ID field from the payload as it's part of the URL
       delete payload[basicInfoFields.id];
@@ -264,14 +276,14 @@ function ParticipantInfo() {
     } finally {
       setIsUpdating(false);
     }
-  }, [accounts, instance, fetchParticipantInfo, originalEditData]);
+  }, [accounts, instance, fetchParticipantInfo, originalEditData, basicInfoFields, creationFormFields]);
 
 
   const handleToggleDetails = useCallback(async (participantId) => {
     const currentlyExpandedId = expandedParticipantId;
     const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
 
-    // If a row was expanded and it's different from the one being toggled, or if we are closing a row
+    // If a row was expanded and it's different from the one being toggled (i.e., switching rows)
     if (currentlyExpandedId && currentlyExpandedId !== participantId) {
       const changes = {};
       for (const key in editFormData) {
@@ -280,33 +292,18 @@ function ParticipantInfo() {
         }
       }
       if (Object.keys(changes).length > 0) {
+        console.log('Saving changes for (switch):', currentlyExpandedId, changes);
         await handleUpdateParticipant(currentlyExpandedId, changes);
       }
     } else if (currentlyExpandedId && newExpandedId === null) { // Closing the currently open row
         const changes = {};
         for (const key in editFormData) {
-            // Ensure proper comparison, especially for null/undefined vs empty string
-            const originalValue = originalEditData[key] === null || originalEditData[key] === undefined ? "" : originalEditData[key];
-            const currentValue = editFormData[key] === null || editFormData[key] === undefined ? "" : editFormData[key];
-            if (currentValue !== originalValue) {
-                // Handle boolean specifically: if original was null and current is false, it's a change.
-                if (typeof originalEditData[key] === 'boolean' || typeof editFormData[key] === 'boolean') {
-                    if (Boolean(editFormData[key]) !== Boolean(originalEditData[key])) {
-                         changes[key] = editFormData[key] === null ? null : Boolean(editFormData[key]);
-                    }
-                } else if (creationFormFields[key]?.type === 'date' || (typeof editFormData[key] === 'string' && editFormData[key].match(/^\\d{4}-\\d{2}-\\d{2}$/))) {
-                    // For dates, ensure they are compared correctly, possibly after formatting to a common standard if necessary
-                    // Assuming dates are stored as YYYY-MM-DD strings from input[type=date]
-                    if (formatDateForInput(editFormData[key]) !== formatDateForInput(originalEditData[key])) {
-                        changes[key] = editFormData[key] ? formatDateForInput(editFormData[key]) : null;
-                    }
-                }
-                else {
-                    changes[key] = editFormData[key];
-                }
+            if (editFormData[key] !== originalEditData[key]) { // Corrected: Compare with originalEditData
+                changes[key] = editFormData[key]; // Corrected: Use editFormData[key]
             }
         }
         if (Object.keys(changes).length > 0) {
+            console.log('Saving changes for (close):', currentlyExpandedId, changes);
             await handleUpdateParticipant(currentlyExpandedId, changes);
         }
     }
@@ -322,9 +319,9 @@ function ParticipantInfo() {
         Object.keys(participantToEdit).forEach(key => {
             // Format dates for input type="date"
             if (typeof participantToEdit[key] === 'string' && participantToEdit[key].match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/)) {
-                 initialFormValues[key] = formatDateForInput(participantToEdit[key]);
+              initialFormValues[key] = formatDateForInput(participantToEdit[key]);
             } else {
-                initialFormValues[key] = participantToEdit[key] === null ? '' : participantToEdit[key];
+              initialFormValues[key] = participantToEdit[key];
             }
         });
         setEditFormData(initialFormValues);
@@ -334,7 +331,7 @@ function ParticipantInfo() {
       setEditFormData({});
       setOriginalEditData({});
     }
-  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData]);
+  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData, basicInfoFields]);
 
 
   const handleEditFormChange = (e) => {
