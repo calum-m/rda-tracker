@@ -4,6 +4,7 @@ import App from "./App";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
+import './tailwind.css'; // Changed back from './index.css' to './tailwind.css'
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
