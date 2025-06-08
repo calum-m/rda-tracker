@@ -32,6 +32,8 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
+import EditIcon from '@mui/icons-material/Edit'; // Added EditIcon
+import SaveIcon from '@mui/icons-material/Save'; // Added SaveIcon
 
 // Dataverse URL (should ideally be in a shared config or passed as prop if different entities use different base URLs)
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -320,6 +322,7 @@ function ParticipantInfo() {
   const handleUpdateParticipant = useCallback(async (participantIdToUpdate, dataToUpdate) => {
     if (Object.keys(dataToUpdate).length === 0) {
       // console.log("No changes to update for participant:", participantIdToUpdate);
+      // setError("No changes detected to save."); // Optionally inform user
       return;
     }
     setIsUpdating(true);
@@ -414,18 +417,41 @@ function ParticipantInfo() {
   }, [accounts, instance, fetchParticipantInfo, originalEditData]);
 
 
+  const handleSaveChanges = useCallback(async (participantId) => {
+    const changes = {};
+    for (const key in editFormData) {
+      if (originalEditData && editFormData[key] !== originalEditData[key]) {
+        changes[key] = editFormData[key];
+      } else if (!originalEditData && typeof editFormData[key] !== 'undefined') {
+        changes[key] = editFormData[key];
+      }
+    }
+
+    if (Object.keys(changes).length > 0) {
+      console.log('Saving changes for:', participantId, changes);
+      await handleUpdateParticipant(participantId, changes);
+    } else {
+      console.log('No changes to save for participant:', participantId);
+      // Optionally, provide feedback to the user that there are no changes.
+      // setError("No changes to save."); 
+      // setTimeout(() => setError(null), 3000); // Clear message after 3 seconds
+    }
+  }, [editFormData, originalEditData, handleUpdateParticipant]);
+
+
   const handleToggleDetails = useCallback(async (participantId) => {
     const currentlyExpandedId = expandedParticipantId;
     const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
 
-    // If a row was expanded and it\'s different from the one being toggled (i.e., switching rows)
+    // Explicit save is now handled by the "Save Changes" button
+    // No automatic save on toggle:
+    /*
     if (currentlyExpandedId && currentlyExpandedId !== participantId) {
       const changes = {};
       for (const key in editFormData) {
-        // Ensure originalEditData is not null or undefined before accessing its properties
         if (originalEditData && editFormData[key] !== originalEditData[key]) {
           changes[key] = editFormData[key];
-        } else if (!originalEditData && editFormData[key] !== undefined) { // Handle case where originalEditData might be initially empty
+        } else if (!originalEditData && editFormData[key] !== undefined) {
           changes[key] = editFormData[key];
         }
       }
@@ -436,7 +462,6 @@ function ParticipantInfo() {
     } else if (currentlyExpandedId && newExpandedId === null) { // Closing the currently open row
         const changes = {};
         for (const key in editFormData) {
-            // Ensure originalEditData is not null or undefined
             if (originalEditData && editFormData[key] !== originalEditData[key]) { 
                 changes[key] = editFormData[key]; 
             } else if (!originalEditData && editFormData[key] !== undefined) {
@@ -448,7 +473,7 @@ function ParticipantInfo() {
             await handleUpdateParticipant(currentlyExpandedId, changes);
         }
     }
-
+    */
 
     setExpandedParticipantId(newExpandedId);
 
@@ -545,11 +570,31 @@ function ParticipantInfo() {
       });
 
       if (!apiResponse.ok) {
-        const errData = await apiResponse.json();
-        console.error("Creation failed with status:", apiResponse.status, errData);
-        setError(errData.error?.message || `Failed to create participant: ${apiResponse.status}`);
+        let errMessage = `Failed to create participant: ${apiResponse.status}`;
+        try {
+            const errData = await apiResponse.json();
+            console.error("Creation failed with status:", apiResponse.status, errData);
+            errMessage = errData.error?.message || errMessage;
+        } catch (jsonError) {
+            // If parsing error response as JSON fails, use the raw text
+            const errText = await apiResponse.text();
+            console.error("Creation failed with status:", apiResponse.status, errText);
+            errMessage = errText || errMessage;
+        }
+        setError(errMessage);
       } else {
-        console.log("Participant created successfully:", await apiResponse.json());
+        // Handle successful creation
+        if (apiResponse.status === 204) { // HTTP 204 No Content
+          console.log("Participant created successfully (204 No Content).");
+        } else { // Assuming HTTP 201 Created or other success with a body
+          try {
+            const createdParticipant = await apiResponse.json();
+            console.log("Participant created successfully:", createdParticipant);
+          } catch (jsonError) {
+            console.warn("Successfully created participant, but response body was not valid JSON or was empty:", jsonError);
+            // Still proceed as if successful, as the main operation completed.
+          }
+        }
         setError(null);
         setIsCreateModalOpen(false);
         setNewParticipant({}); // Reset new participant state
@@ -625,7 +670,7 @@ function ParticipantInfo() {
           <Table aria-label="collapsible participant table">
             <TableHead sx={{ backgroundColor: 'primary.main' }}>
               <TableRow>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }} /> {/* For expand icon */}
+                {/* Removed expand icon TableCell -> <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }} /> */}
                 <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>First Name</TableCell>
                 <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Last Name</TableCell>
                 <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Date of Birth</TableCell>
@@ -636,7 +681,7 @@ function ParticipantInfo() {
               {participantData.map((participant) => (
                 <React.Fragment key={participant[basicInfoFields.id]}>
                   <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-                    <TableCell>
+                    {/* <TableCell> // This cell is removed as the edit icon is now in actions
                       <IconButton
                         aria-label="expand row"
                         size="small"
@@ -644,22 +689,21 @@ function ParticipantInfo() {
                       >
                         {expandedParticipantId === participant[basicInfoFields.id] ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                       </IconButton>
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell component="th" scope="row">
                       {valueToString(participant[basicInfoFields.firstName])}
                     </TableCell>
                     <TableCell>{valueToString(participant[basicInfoFields.lastName])}</TableCell>
                     <TableCell>{formatDate(participant[basicInfoFields.dob])}</TableCell>
                     <TableCell>
-                       {/* Edit button can be added here if needed, similar to delete */}
-                       {/* <IconButton 
-                            aria-label=\"edit participant\" 
-                            size=\"small\" 
-                            onClick={() => handleToggleDetails(participant[basicInfoFields.id])} // Or a dedicated edit handler
-                            sx={{ mr: 1 }}
-                        >
-                           <EditIcon />
-                        </IconButton> */}
+                      <IconButton 
+                        aria-label="edit participant" 
+                        size="small" 
+                        onClick={() => handleToggleDetails(participant[basicInfoFields.id])}
+                        sx={{ mr: 1 }}
+                      >
+                        {expandedParticipantId === participant[basicInfoFields.id] ? <KeyboardArrowUpIcon /> : <EditIcon />}
+                      </IconButton>
                       <IconButton 
                         aria-label="delete participant" 
                         size="small" 
@@ -671,7 +715,7 @@ function ParticipantInfo() {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}> {/* Adjusted colSpan since one cell was removed */}
                       <Collapse in={expandedParticipantId === participant[basicInfoFields.id]} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 1, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
                           <Typography variant="h6" gutterBottom component="div">
@@ -682,7 +726,7 @@ function ParticipantInfo() {
                             <Grid container spacing={2}>
                               {Object.keys(creationFormFields).map(fieldKey => {
                                 const field = creationFormFields[fieldKey];
-                                if (fieldKey === basicInfoFields.id) return null; // Don't show ID field
+                                if (fieldKey === basicInfoFields.id) return null; // Don\'t show ID field
 
                                 const gridSpan = field.gridSpan || 6; // Default to half-width if not specified
 
@@ -695,6 +739,7 @@ function ParticipantInfo() {
                                             checked={editFormData[fieldKey] || false}
                                             onChange={handleEditFormChange}
                                             name={fieldKey}
+                                            disabled={isUpdating}
                                           />
                                         }
                                         label={field.label + (field.required ? '*' : '')}
@@ -715,9 +760,11 @@ function ParticipantInfo() {
                                         variant="outlined"
                                         size="small"
                                         fullWidth
+                                        disabled={isUpdating}
                                         SelectProps={{
                                           native: true,
                                         }}
+                                        InputLabelProps={{ shrink: true }}
                                       >
                                         <option value=""></option> {/* Default empty option */}
                                         {field.options.map(option => (
@@ -741,7 +788,8 @@ function ParticipantInfo() {
                                       variant="outlined"
                                       size="small"
                                       fullWidth
-                                      InputLabelProps={(field.type === 'date' || field.type === 'datetime-local') ? { shrink: true } : {}}
+                                      disabled={isUpdating}
+                                      InputLabelProps={(field.type === 'date' || field.type === 'datetime-local' || editFormData[fieldKey]) ? { shrink: true } : {}}
                                     />
                                   </Grid>
                                 );
@@ -749,12 +797,23 @@ function ParticipantInfo() {
                             </Grid>
                           </Box>
                           {isUpdating && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, mb: 1 }}>
                                 <CircularProgress size={20} sx={{mr:1}}/> 
                                 <Typography>Saving...</Typography>
                             </Box>
                           )}
-                          {/* Save is implicit on toggle/blur */}
+                          {/* Save is explicit via button now */}
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button 
+                                variant="contained" 
+                                color="primary" 
+                                startIcon={<SaveIcon />}
+                                onClick={() => handleSaveChanges(participant[basicInfoFields.id])}
+                                disabled={isUpdating}
+                            >
+                                {isUpdating ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                          </Box>
                         </Box>
                       </Collapse>
                     </TableCell>
@@ -766,16 +825,17 @@ function ParticipantInfo() {
         </TableContainer>
       )}
 
-      {/* Create Participant Modal/Dialog */}
+      {/* Create Participant Dialog */}
       <Dialog open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add New Participant</DialogTitle>
+        <DialogTitle>Add New Participant</DialogTitle> {/* Changed from "Create New Participant" */}
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {/* <Box component="form" onSubmit={(e) => e.preventDefault()} sx={{ mt: 1 }}> Changed to use id and submit via DialogActions */}
           <Box component="form" id="createParticipantForm" onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }} sx={{ mt: 1 }}>
             <Grid container spacing={2}>
               {Object.keys(creationFormFields).map(fieldKey => {
                 const field = creationFormFields[fieldKey];
-                if (fieldKey === basicInfoFields.id) return null; // Don't show ID field for creation
+                if (fieldKey === basicInfoFields.id) return null; // Don\'t show ID field for creation
 
                 const gridSpan = field.gridSpan || 6; // Default to half-width
 
@@ -788,6 +848,7 @@ function ParticipantInfo() {
                             checked={newParticipant[fieldKey] || false}
                             onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.checked })}
                             name={fieldKey}
+                            disabled={isSubmitting}
                           />
                         }
                         label={field.label + (field.required ? '*' : '')}
@@ -806,18 +867,23 @@ function ParticipantInfo() {
                         onChange={(e) => {
                             const fieldDefinition = creationFormFields[fieldKey];
                             let val = e.target.value;
+                            // Convert back to boolean if it\'s a boolean select
                             if (fieldDefinition.options?.some(opt => typeof opt.value === 'boolean')) {
                                 if (val === 'true') val = true;
                                 else if (val === 'false') val = false;
+                                // if val is empty string, it will be handled by submission logic to be null or default
                             }
+                            // For disability status, the value is already the integer (as string), parsing happens on submission
                             setNewParticipant({ ...newParticipant, [fieldKey]: val });
                         }}
                         required={field.required}
                         variant="outlined"
                         fullWidth
+                        disabled={isSubmitting}
                         SelectProps={{
                           native: true,
                         }}
+                        InputLabelProps={{ shrink: true }}
                       >
                         <option value=""></option> {/* Default empty option */}
                         {field.options.map(option => (
@@ -840,7 +906,8 @@ function ParticipantInfo() {
                       required={field.required}
                       variant="outlined"
                       fullWidth
-                      InputLabelProps={(field.type === 'date' || field.type === 'datetime-local') ? { shrink: true } : {}}
+                      disabled={isSubmitting}
+                      InputLabelProps={(field.type === 'date' || field.type === 'datetime-local' || newParticipant[fieldKey]) ? { shrink: true } : {}}
                     />
                   </Grid>
                 );
@@ -849,9 +916,15 @@ function ParticipantInfo() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-          <Button type="submit" form="createParticipantForm" variant="contained" disabled={isSubmitting}>
-            {isSubmitting ? <CircularProgress size={24} /> : 'Create Participant'}
+          <Button onClick={() => setIsCreateModalOpen(false)}>Cancel</Button> {/* Removed color="primary" to use default */}
+          <Button 
+            type="submit" 
+            form="createParticipantForm" // Submit the form by ID
+            variant="contained" // Added variant
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={20} /> : <AddIcon />} // Added icon
+          >
+            {isSubmitting ? 'Creating...' : 'Create Participant'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -860,29 +933,31 @@ function ParticipantInfo() {
       <Dialog
         open={Boolean(participantToDelete)}
         onClose={closeDeleteConfirmDialog}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
+        aria-labelledby="delete-confirmation-dialog"
       >
-        <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
+        <DialogTitle id="delete-confirmation-dialog">Confirm Deletion</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
+          <DialogContentText>
             Are you sure you want to delete this participant? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDeleteConfirmDialog} color="primary" autoFocus>
+          <Button onClick={closeDeleteConfirmDialog} color="primary">
             Cancel
           </Button>
           <Button 
-            onClick={() => handleDeleteParticipant(participantToDelete)} 
+            onClick={() => { 
+              handleDeleteParticipant(participantToDelete); 
+              closeDeleteConfirmDialog(); // Close dialog after delete action
+            }} 
             color="error" 
+            variant="contained"
             disabled={isDeleting}
           >
-            {isDeleting ? <CircularProgress size={24} /> : "Delete"}
+            {isDeleting ? <CircularProgress size={24} /> : 'Delete Participant'}
           </Button>
         </DialogActions>
       </Dialog>
-
     </Container>
   );
 }
