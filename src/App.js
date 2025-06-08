@@ -17,7 +17,7 @@ const emotionCache = createCache({ // Renamed cache to emotionCache to avoid con
 });
 
 const loginRequest = {
-  scopes: [process.env.REACT_APP_DATAVERSE_SCOPE], // Use environment variable
+  scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || ""], // Use environment variable with a fallback
 };
 
 // Create a default MUI theme - THIS THEME IS USED
