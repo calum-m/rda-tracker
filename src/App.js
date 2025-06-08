@@ -6,6 +6,7 @@ import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/
 import CoachingSessionPlans from "./LessonEvaluations"; // Renamed import, path remains the same
 import ParticipantInfo from "./ParticipantInfo"; // Import the new component
 import HelpPage from "./HelpPage"; // Import the HelpPage component
+import LandingPage from "./LandingPage"; // Import the LandingPage component
 import LockOpenIcon from '@mui/icons-material/LockOpen'; // Added import
 import createCache from '@emotion/cache'; // Import createCache
 
@@ -131,7 +132,7 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                     <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} />
                     <Route path="/participant-info" element={<ParticipantInfo />} />
                     <Route path="/help" element={<HelpPage />} /> {/* Added HelpPage route */}
-                    <Route path="/" element={<Navigate to="/coaching-session-plans" />} /> {/* Default route */}
+                    <Route path="/" element={<LandingPage />} /> {/* Default route updated to LandingPage */}
                   </Routes>
                 )}
               </AuthenticatedTemplate>
