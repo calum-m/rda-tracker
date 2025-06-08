@@ -16,12 +16,11 @@ const emotionCache = createCache({ // Renamed cache to emotionCache to avoid con
   nonce: nonce,
 });
 
-
 const loginRequest = {
-  scopes: ["https://orgdbcfb9bc.crm11.dynamics.com/.default"],
+  scopes: [process.env.REACT_APP_DATAVERSE_SCOPE], // Use environment variable
 };
 
-// Create a default MUI theme
+// Create a default MUI theme - THIS THEME IS USED
 const theme = createTheme({
   palette: {
     primary: {
@@ -95,18 +94,6 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
     );
   };
   
-  // Create a default MUI theme
-  const theme = createTheme({
-    palette: {
-      primary: {
-        main: '#1976d2', // Example: MUI blue
-      },
-      secondary: {
-        main: '#dc004e', // Example: MUI pink
-      },
-    },
-  });
-
   return (
     <CacheProvider value={emotionCache}> {/* Use CacheProvider from @emotion/react and the created emotionCache */}
       <ThemeProvider theme={theme}>
