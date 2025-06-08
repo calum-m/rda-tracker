@@ -23,11 +23,15 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Container from '@mui/material/Container'; // Added Container import
+import DialogContentText from '@mui/material/DialogContentText'; // Added DialogContentText
 
 // Icons
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
+import EditIcon from '@mui/icons-material/Edit'; // Added EditIcon for consistency if needed later
 
 // Dataverse URL (should ideally be in a shared config or passed as prop if different entities use different base URLs)
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -151,6 +155,12 @@ function ParticipantInfo() {
   const [editFormData, setEditFormData] = useState({});
   const [originalEditData, _setOriginalEditData] = useState({}); // Prefix setter with _
   const [isUpdating, setIsUpdating] = useState(false);
+  const [participantToDelete, setParticipantToDelete] = useState(null); // For delete confirmation
+  const [isDeleting, setIsDeleting] = useState(false); // For delete operation loading state
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  }; 
 
   const fetchParticipantInfo = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -217,6 +227,79 @@ function ParticipantInfo() {
   useEffect(() => {
     fetchParticipantInfo();
   }, [fetchParticipantInfo]);
+
+  const handleDeleteParticipant = useCallback(async (participantIdToDelete) => {
+    if (!participantIdToDelete) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    if (accounts.length === 0 || !instance) {
+      setError("Authentication error. Cannot delete participant.");
+      setIsDeleting(false);
+      setParticipantToDelete(null); // Close dialog
+      return;
+    }
+
+    const request = {
+      scopes: [`${dataverseUrl}/.default`],
+      account: accounts[0],
+    };
+
+    try {
+      const response = await instance.acquireTokenSilent(request);
+      const token = response.accessToken;
+
+      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations(${participantIdToDelete})`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'OData-MaxVersion': '4.0',
+          'OData-Version': '4.0',
+        },
+      });
+
+      if (!apiResponse.ok) {
+        // For DELETE, a 204 No Content is success, but other errors might return JSON
+        let errMessage = `Failed to delete participant: ${apiResponse.status}`;
+        if (apiResponse.headers.get("content-type")?.includes("application/json")) {
+            const errData = await apiResponse.json();
+            console.error("Delete failed with status:", apiResponse.status, errData);
+            errMessage = errData.error?.message || errMessage;
+        } else {
+            console.error("Delete failed with status:", apiResponse.status, await apiResponse.text());
+        }
+        setError(errMessage);
+      } else {
+        console.log("Delete successful for participant:", participantIdToDelete);
+        setError(null);
+        // Refetch participant info to update the list
+        fetchParticipantInfo(false); // false to not show loading spinner
+        // If the deleted participant was expanded, collapse it
+        if (expandedParticipantId === participantIdToDelete) {
+            setExpandedParticipantId(null);
+            setEditFormData({});
+            _setOriginalEditData({});
+        }
+      }
+    } catch (err) {
+      console.error("Delete operation failed:", err);
+      setError(err.message || "An unexpected error occurred during delete.");
+    } finally {
+      setIsDeleting(false);
+      setParticipantToDelete(null); // Close dialog
+    }
+  }, [accounts, instance, fetchParticipantInfo, expandedParticipantId]);
+
+  const openDeleteConfirmDialog = (participantId) => {
+    setParticipantToDelete(participantId);
+  };
+
+  const closeDeleteConfirmDialog = () => {
+    setParticipantToDelete(null);
+  };
+
 
   const handleUpdateParticipant = useCallback(async (participantIdToUpdate, dataToUpdate) => {
     if (Object.keys(dataToUpdate).length === 0) {
@@ -460,47 +543,50 @@ function ParticipantInfo() {
   }, [searchTerm, allParticipantData]); // Depend on searchTerm and allParticipantData
 
 
+  // Render the table
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h4" gutterBottom component="h1">
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
         Participant Information
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <TextField
-          label="Search participants..."
+          label="Search Participants (by Name, DOB)"
           variant="outlined"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ flexGrow: 1, minWidth: '200px' }}
+          onChange={handleSearchChange}
+          sx={{ width: '40%' }}
         />
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setIsCreateModalOpen(true)}
         >
-          Create New Participant
+          Add New Participant
         </Button>
       </Box>
+      {isLoading && !participantData.length && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>}
+      {!isLoading && !error && participantData.length === 0 && searchTerm === '' && (
+         <Typography sx={{textAlign: 'center', my: 3}}>No participants found. Click "Add New Participant" to get started.</Typography>
+      )}
+      {!isLoading && !error && participantData.length === 0 && searchTerm !== '' && (
+         <Typography sx={{textAlign: 'center', my: 3}}>No participants match your search criteria.</Typography>
+      )}
 
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table aria-label="participant table">
-            <TableHead>
+      {participantData.length > 0 && (
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table aria-label="collapsible participant table">
+            <TableHead sx={{ backgroundColor: 'primary.main' }}>
               <TableRow>
-                <TableCell /> {/* For expand/collapse icon */}
-                <TableCell>First Name</TableCell>
-                <TableCell>Last Name</TableCell>
-                <TableCell>Date of Birth</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Phone Number</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }} /> {/* For expand icon */}
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>First Name</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Last Name</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Date of Birth</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Actions</TableCell> {/* Actions column */}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -521,16 +607,24 @@ function ParticipantInfo() {
                     </TableCell>
                     <TableCell>{valueToString(participant[basicInfoFields.lastName])}</TableCell>
                     <TableCell>{formatDate(participant[basicInfoFields.dob])}</TableCell>
-                    <TableCell>{valueToString(participant['cr648_emailaddress'])}</TableCell>
-                    <TableCell>{valueToString(participant['cr648_phonenumber'])}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleToggleDetails(participant[basicInfoFields.id])}
+                       {/* Edit button can be added here if needed, similar to delete */}
+                       {/* <IconButton 
+                            aria-label=\"edit participant\" 
+                            size=\"small\" 
+                            onClick={() => handleToggleDetails(participant[basicInfoFields.id])} // Or a dedicated edit handler
+                            sx={{ mr: 1 }}
+                        >
+                           <EditIcon />
+                        </IconButton> */}
+                      <IconButton 
+                        aria-label="delete participant" 
+                        size="small" 
+                        onClick={() => openDeleteConfirmDialog(participant[basicInfoFields.id])}
+                        color="error"
                       >
-                        {expandedParticipantId === participant[basicInfoFields.id] ? 'Hide' : 'View/Edit'}
-                      </Button>
+                        <DeleteIcon />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -597,8 +691,8 @@ function ParticipantInfo() {
       )}
 
       {/* Create Participant Modal/Dialog */}
-      <Dialog open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New Participant</DialogTitle>
+      <Dialog open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Add New Participant</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Box component="form" id="createParticipantForm" onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }} sx={{ '& .MuiTextField-root': { my: 1 }, display: 'flex', flexDirection: 'column' }}>
@@ -643,7 +737,35 @@ function ParticipantInfo() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(participantToDelete)}
+        onClose={closeDeleteConfirmDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to delete this participant? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteConfirmDialog} color="primary" autoFocus>
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => handleDeleteParticipant(participantToDelete)} 
+            color="error" 
+            disabled={isDeleting}
+          >
+            {isDeleting ? <CircularProgress size={24} /> : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+    </Container>
   );
 }
 

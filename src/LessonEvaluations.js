@@ -20,9 +20,10 @@ import {
   Typography,
   Paper,
   Grid,
-  Alert
+  Alert,
+  IconButton // Added IconButton
 } from "@mui/material";
-import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon, Delete as DeleteIcon } from '@mui/icons-material'; // Added DeleteIcon
 
 // Replace this with your Dataverse URL
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -43,6 +44,8 @@ const LessonEvaluations = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState(null); // For delete confirmation
+  const [isDeleting, setIsDeleting] = useState(false); // For delete operation loading state
 
 
   // New states for advanced filtering
@@ -185,6 +188,80 @@ const LessonEvaluations = () => {
     }
   };
 
+  const handleDeleteRecord = async (recordIdToDelete) => {
+    if (!recordIdToDelete) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    if (accounts.length === 0 || !instance) {
+      setError("Authentication error. Cannot delete record.");
+      setIsDeleting(false);
+      setRecordToDelete(null); // Close dialog
+      return;
+    }
+
+    const request = {
+      scopes: [`${dataverseUrl}/.default`],
+      account: accounts[0],
+    };
+
+    try {
+      const response = await instance.acquireTokenSilent(request);
+      const token = response.accessToken;
+
+      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations(${recordIdToDelete})`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'OData-MaxVersion': '4.0',
+          'OData-Version': '4.0',
+        },
+      });
+
+      if (!apiResponse.ok) {
+        let errMessage = `Failed to delete record: ${apiResponse.status}`;
+        if (apiResponse.headers.get("content-type")?.includes("application/json")) {
+            const errData = await apiResponse.json();
+            console.error("Delete failed with status:", apiResponse.status, errData);
+            errMessage = errData.error?.message || errMessage;
+        } else {
+            console.error("Delete failed with status:", apiResponse.status, await apiResponse.text());
+        }
+        setError(errMessage);
+      } else {
+        console.log("Delete successful for record:", recordIdToDelete);
+        setError(null);
+        // Update state to remove the deleted record
+        const updatedRecords = allProgressRecords.filter(rec => rec.cr648_lessonevaluationid !== recordIdToDelete);
+        setAllProgressRecords(updatedRecords);
+        // Re-apply filters after deleting
+        applyFiltersAndSearch(updatedRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
+        // If the deleted record was being edited, cancel edit mode
+        if (editingId === recordIdToDelete) {
+            setEditingId(null);
+            setEditFormData({});
+        }
+      }
+    } catch (err) {
+      console.error("Delete operation failed:", err);
+      setError(err.message || "An unexpected error occurred during delete.");
+    } finally {
+      setIsDeleting(false);
+      setRecordToDelete(null); // Close dialog
+    }
+  };
+
+  const openDeleteConfirmDialog = (recordId) => {
+    setRecordToDelete(recordId);
+  };
+
+  const closeDeleteConfirmDialog = () => {
+    setRecordToDelete(null);
+  };
+
+
   const handleNewRecordChange = (event) => {
     const { name, value } = event.target;
     setNewRecord((prev) => ({ ...prev, [name]: value }));
@@ -308,7 +385,7 @@ const LessonEvaluations = () => {
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {isLoading && <CircularProgress sx={{ display: 'block', margin: '20px auto' }} />}
+      {isLoading && !progressRecords.length && <CircularProgress sx={{ display: 'block', margin: '20px auto' }} />}
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <TextField
@@ -367,6 +444,39 @@ const LessonEvaluations = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(recordToDelete)}
+        onClose={closeDeleteConfirmDialog}
+        aria-labelledby="alert-dialog-title-le" // Unique ID for accessibility
+        aria-describedby="alert-dialog-description-le" // Unique ID for accessibility
+      >
+        <DialogTitle id="alert-dialog-title-le">{"Confirm Delete"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description-le">
+            Are you sure you want to delete this lesson evaluation? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteConfirmDialog} color="primary" autoFocus>
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => handleDeleteRecord(recordToDelete)} 
+            color="error" 
+            disabled={isDeleting}
+          >
+            {isDeleting ? <CircularProgress size={24} /> : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {!isLoading && !error && progressRecords.length === 0 && (
+        <Typography sx={{textAlign: 'center', my: 3}}>
+          {allProgressRecords.length === 0 ? "No lesson evaluations found. Click \"Create New Evaluation\" to add one." : "No records match your current filter criteria."}
+        </Typography>
+      )}
+
       {progressRecords && progressRecords.length > 0 ? (
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 650 }} aria-label="lesson evaluations table">
@@ -393,17 +503,28 @@ const LessonEvaluations = () => {
                           <Button onClick={handleSaveEdit} startIcon={<SaveIcon />} variant="contained" color="success" sx={{ mr: 1 }} disabled={isLoading}>
                             {isLoading && editingId === record.cr648_lessonevaluationid ? <CircularProgress size={20} /> : "Save"}
                           </Button>
-                          <Button onClick={handleCancelEdit} startIcon={<CancelIcon />} variant="outlined" color="secondary">Cancel</Button>
+                          <Button onClick={handleCancelEdit} startIcon={<CancelIcon />} variant="outlined" color="secondary" sx={{mr: 1}}>Cancel</Button> {/* Added margin */}
+                          {/* Delete button is not shown in edit mode for simplicity, or could be added here */}
                         </TableCell>
                       </>
                     ) : (
                       <>
                         <TableCell>{record.cr648_lessonplan || "N/A"}</TableCell>
                         <TableCell>{record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "N/A"}</TableCell>
-                        <TableCell>{record.cr648_participantsevaluation || "No comments"}</TableCell>
+                        <TableCell>{record.cr648_participantsevaluation || "N/A"}</TableCell>
                         <TableCell>{record.cr648_coachname || "N/A"}</TableCell>
                         <TableCell>
-                          <Button onClick={() => handleEdit(record)} startIcon={<EditIcon />} variant="outlined" color="primary">Edit</Button>
+                          <IconButton onClick={() => handleEdit(record)} size="small" sx={{ mr: 1 }} aria-label="edit">
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton 
+                            onClick={() => openDeleteConfirmDialog(record.cr648_lessonevaluationid)} 
+                            size="small" 
+                            color="error" 
+                            aria-label="delete"
+                           >
+                            <DeleteIcon />
+                          </IconButton>
                         </TableCell>
                       </>
                     )}

@@ -1,18 +1,10 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link as RouterLink, Navigate } from "react-router-dom";
-import { useMsal, AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
+import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper } from '@mui/material';
+import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
 import LessonEvaluations from "./LessonEvaluations"; // Corrected import
 import ParticipantInfo from "./ParticipantInfo"; // Import the new component
-
-// MUI Imports
-import CssBaseline from '@mui/material/CssBaseline';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Box from '@mui/material/Box';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import LockOpenIcon from '@mui/icons-material/LockOpen'; // Added import
 
 const loginRequest = {
   scopes: ["https://orgdbcfb9bc.crm11.dynamics.com/.default"],
@@ -46,6 +38,50 @@ const App = () => {
     instance.logoutRedirect().catch(e => {
       console.error("Logout redirect error:", e);
     });
+  };
+
+  const UnauthenticatedView = () => {
+    return (
+      <Container
+        maxWidth="xs" // Constrain width for the login box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 'calc(100vh - 128px)', // Adjust height considering header and footer
+          py: 4, // Add some vertical padding
+        }}
+      >
+        <Paper
+          elevation={3}
+          sx={{
+            p: 4, // Padding inside the paper
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%', // Paper takes full width of the container
+          }}
+        >
+          <LockOpenIcon sx={{ fontSize: 40, mb: 2 }} color="primary" />
+          <Typography variant="h5" component="h1" gutterBottom>
+            Sign In
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3, textAlign: 'center' }}>
+            Access your RDA Sessions Tracker account.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleLogin}
+            fullWidth // Make button full width
+            sx={{ py: 1.5 }} // Increase button padding
+          >
+            Sign In with Microsoft
+          </Button>
+        </Paper>
+      </Container>
+    );
   };
 
   return (
@@ -93,17 +129,7 @@ const App = () => {
             </AuthenticatedTemplate>
 
             <UnauthenticatedTemplate>
-              <Box sx={{ textAlign: 'center', mt: 8 }}>
-                <Typography variant="h4" component="h2" gutterBottom>
-                  Welcome
-                </Typography>
-                <Typography variant="subtitle1" sx={{ mb: 3 }}>
-                  Please login to access the application.
-                </Typography>
-                <Button variant="contained" color="primary" onClick={handleLogin} size="large">
-                  Login
-                </Button>
-              </Box>
+              <UnauthenticatedView />
             </UnauthenticatedTemplate>
           </Container>
 
