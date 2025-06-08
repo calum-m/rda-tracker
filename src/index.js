@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
+import AppWithEmotionCache from "./App"; // Import AppWithEmotionCache
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
@@ -15,7 +15,7 @@ msalInstance.initialize().then(() => {
     root.render(
       <React.StrictMode>
         <MsalProvider instance={msalInstance}>
-          <App />
+          <AppWithEmotionCache /> {/* Use AppWithEmotionCache */}
         </MsalProvider>
       </React.StrictMode>
     );

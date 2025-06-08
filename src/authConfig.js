@@ -13,7 +13,7 @@ export const msalConfig = {
     redirectUri: currentRedirectUri, 
   },
   cache: {
-    cacheLocation: "sessionStorage", // or "localStorage"
+    cacheLocation: "localStorage", // or "localStorage"
     storeAuthStateInCookie: false,
   },
 };

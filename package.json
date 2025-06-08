@@ -8,6 +8,11 @@
   "dependencies": {
     "@azure/msal-browser": "^4.13.0",
     "@azure/msal-react": "^3.0.12",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@mui/icons-material": "^5.15.20",
+    "@mui/material": "^5.15.20",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -15,12 +20,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4",
-    "@mui/material": "^5.15.20",
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.5",
-    "@mui/icons-material": "^5.15.20"
+    "react-scripts": "^5.0.1",
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -45,6 +46,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {}
+  }
 }

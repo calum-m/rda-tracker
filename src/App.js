@@ -1,10 +1,21 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link as RouterLink, Navigate } from "react-router-dom";
 import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper } from '@mui/material';
+import { CacheProvider } from '@emotion/react'; // Import CacheProvider from @emotion/react
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
 import CoachingSessionPlans from "./LessonEvaluations"; // Renamed import, path remains the same
 import ParticipantInfo from "./ParticipantInfo"; // Import the new component
 import LockOpenIcon from '@mui/icons-material/LockOpen'; // Added import
+import createCache from '@emotion/cache'; // Import createCache
+
+const nonce = 'mui-csp-nonce-12345'; // Define a nonce
+
+// Create an Emotion cache with the nonce
+const emotionCache = createCache({ // Renamed cache to emotionCache to avoid conflict
+  key: 'css',
+  nonce: nonce,
+});
+
 
 const loginRequest = {
   scopes: ["https://orgdbcfb9bc.crm11.dynamics.com/.default"],
@@ -23,7 +34,7 @@ const theme = createTheme({
 });
 
 
-const App = () => {
+const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
   const { instance, accounts } = useMsal();
 
   console.log("Accounts:", accounts);
@@ -83,65 +94,78 @@ const App = () => {
       </Container>
     );
   };
+  
+  // Create a default MUI theme
+  const theme = createTheme({
+    palette: {
+      primary: {
+        main: '#1976d2', // Example: MUI blue
+      },
+      secondary: {
+        main: '#dc004e', // Example: MUI pink
+      },
+    },
+  });
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <AppBar position="static">
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                RDA Tracker
-              </Typography>
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+    <CacheProvider value={emotionCache}> {/* Use CacheProvider from @emotion/react and the created emotionCache */}
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <AppBar position="static">
+              <Toolbar>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                  RDA Tracker
+                </Typography>
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                  {accounts.length > 0 && (
+                    <>
+                      <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
+                      <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
+                      <Button color="inherit" onClick={handleLogout}>Logout</Button>
+                    </>
+                  )}
+                </Box>
+                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                  {/* Add mobile menu/icon button here if needed */}
+                </Box>
+              </Toolbar>
+            </AppBar>
+            <Container component="main" sx={{ flexGrow: 1, py: 3, px: { xs: 2, sm: 3 } }}>
+              <AuthenticatedTemplate>
                 {accounts.length > 0 && (
-                  <>
-                    <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
-                    <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button> {/* Renamed link text and path */}
-                  </>
+                  <Routes>
+                    <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} />
+                    <Route path="/participant-info" element={<ParticipantInfo />} />
+                    <Route path="/" element={<Navigate to="/coaching-session-plans" />} /> {/* Default route */}
+                  </Routes>
                 )}
-              </Box>
-              {accounts.length > 0 ? (
-                <Button color="inherit" onClick={handleLogout}>Logout</Button>
-              ) : (
-                <Button color="inherit" onClick={handleLogin}>Login</Button>
-              )}
-            </Toolbar>
-          </AppBar>
-
-          {/* Mobile Navigation (Optional - can be implemented with a Drawer) */}
-          {accounts.length > 0 && (
-            <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'center', p: 1, bgcolor: 'primary.main' }}>
-                 <Button sx={{color: 'white'}} component={RouterLink} to="/participant-info">Participant Info</Button>
-                 <Button sx={{color: 'white'}} component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button> {/* Renamed link text and path */}
+              </AuthenticatedTemplate>
+              <UnauthenticatedTemplate>
+                <UnauthenticatedView />
+              </UnauthenticatedTemplate>
+            </Container>
+            <Box
+              component="footer"
+              sx={{
+                py: 2,
+                px: 2,
+                mt: 'auto',
+                backgroundColor: (theme) =>
+                  theme.palette.mode === 'light' ? theme.palette.grey[200] : theme.palette.grey[800],
+                textAlign: 'center',
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                © {new Date().getFullYear()} RDA Tracker
+              </Typography>
             </Box>
-          )}
-
-
-          <Container component="main" sx={{ flexGrow: 1, py: 3 }}>
-            <AuthenticatedTemplate>
-              <Routes>
-                <Route path="/participant-info" element={<ParticipantInfo />} />
-                <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} /> {/* Renamed path and component */}
-                <Route path="/" element={<Navigate to="/participant-info" />} />
-              </Routes>
-            </AuthenticatedTemplate>
-
-            <UnauthenticatedTemplate>
-              <UnauthenticatedView />
-            </UnauthenticatedTemplate>
-          </Container>
-
-          <Box component="footer" sx={{ bgcolor: 'background.paper', py: 3, mt: 'auto', textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              &copy; {new Date().getFullYear()} RDA Tracker. All rights reserved.
-            </Typography>
           </Box>
-        </Box>
-      </Router>
-    </ThemeProvider>
+        </Router>
+      </ThemeProvider>
+    </CacheProvider>
   );
 };
 
-export default App;
+export default AppWithEmotionCache; // Ensure this exports the wrapped component
