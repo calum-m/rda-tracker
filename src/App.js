@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from "react-router-dom";
-import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper } from '@mui/material';
+import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper, IconButton, Menu, MenuItem } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu'; // Import MenuIcon
 import { CacheProvider } from '@emotion/react'; // Import CacheProvider from @emotion/react
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
 import CoachingSessionPlans from "./LessonEvaluations"; // Renamed import, path remains the same
@@ -37,8 +38,17 @@ const theme = createTheme({
 
 const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
   const { instance, accounts } = useMsal();
+  const [anchorEl, setAnchorEl] = useState(null); // State for mobile menu
 
   console.log("Accounts:", accounts);
+
+  const handleMobileMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMobileMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleLogin = () => {
     instance.loginRedirect(loginRequest).catch(e => {
@@ -110,21 +120,57 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                 <Box sx={{ flexGrow: 1 }}>
                   <img src={process.env.PUBLIC_URL + '/RDALOGO.svg'} alt="RDA Tracker Logo" style={{ height: '40px', marginRight: '10px' }} />
                 </Box>
+                {/* Desktop Menu Items */}
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                   {accounts.length > 0 && (
                     <>
+                      <Button color="inherit" component={RouterLink} to="/">Home</Button> {/* Added Home link */}
                       <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
                       <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
-                      <Button color="inherit" component={RouterLink} to="/help">Help</Button> {/* Added Help link */}
+                      <Button color="inherit" component={RouterLink} to="/help">Help</Button>
                       <Button color="inherit" onClick={handleLogout}>Logout</Button>
                     </>
                   )}
                 </Box>
-                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-                  {/* Add mobile menu/icon button here if needed */}
+                {/* Mobile Menu Icon */}
+                <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
+                  {accounts.length > 0 && (
+                    <IconButton
+                      size="large"
+                      edge="end"
+                      color="inherit"
+                      aria-label="menu"
+                      onClick={handleMobileMenuOpen}
+                    >
+                      <MenuIcon />
+                    </IconButton>
+                  )}
                 </Box>
               </Toolbar>
             </AppBar>
+            {/* Mobile Menu Dropdown */}
+            {accounts.length > 0 && (
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMobileMenuClose}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                sx={{ mt: '45px' }} // Adjust margin top to be below AppBar
+              >
+                <MenuItem component={RouterLink} to="/" onClick={handleMobileMenuClose}>Home</MenuItem>
+                <MenuItem component={RouterLink} to="/participant-info" onClick={handleMobileMenuClose}>Participant Info</MenuItem>
+                <MenuItem component={RouterLink} to="/coaching-session-plans" onClick={handleMobileMenuClose}>Coaching Session Plans</MenuItem>
+                <MenuItem component={RouterLink} to="/help" onClick={handleMobileMenuClose}>Help</MenuItem>
+                <MenuItem onClick={() => { handleMobileMenuClose(); handleLogout(); }}>Logout</MenuItem>
+              </Menu>
+            )}
             <Container component="main" sx={{ flexGrow: 1, py: 3, px: { xs: 2, sm: 3 } }}>
               <AuthenticatedTemplate>
                 {accounts.length > 0 && (
