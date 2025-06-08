@@ -1,5 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { useMsal } from "@azure/msal-react";
+import {
+  Box,
+  Button,
+  Container,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+  Paper,
+  Grid,
+  Alert
+} from "@mui/material";
+import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon } from '@mui/icons-material';
 
 // Replace this with your Dataverse URL
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -7,9 +30,9 @@ const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
 const LessonEvaluations = () => {
   const { instance, accounts } = useMsal();
   const [progressRecords, setProgressRecords] = useState([]);
-  const [editingId, setEditingId] = useState(null); // ID of the record being edited
-  const [editFormData, setEditFormData] = useState({}); // Form data for the record being edited
-  // New state for creating a record
+  const [allProgressRecords, setAllProgressRecords] = useState([]); // To store all records fetched
+  const [editingId, setEditingId] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
   const [newRecord, setNewRecord] = useState({
     cr648_lessonplan: '',
     cr648_date: '',
@@ -17,6 +40,10 @@ const LessonEvaluations = () => {
     cr648_coachname: ''
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
 
   // New states for advanced filtering
   const [filterLessonPlan, setFilterLessonPlan] = useState("");
@@ -27,8 +54,9 @@ const LessonEvaluations = () => {
 
   useEffect(() => {
     if (accounts.length === 0) return;
+    setIsLoading(true);
+    setError(null);
 
-    // Optional: setIsLoading(true); setError(null);
     const request = {
       scopes: [`${dataverseUrl}/.default`],
       account: accounts[0],
@@ -38,7 +66,7 @@ const LessonEvaluations = () => {
       .acquireTokenSilent(request)
       .then((response) => {
         const token = response.accessToken;
-        fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations`, {
+        fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations?$orderby=createdon desc`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
@@ -50,29 +78,37 @@ const LessonEvaluations = () => {
             if (!res.ok) {
               return res.json().then(errData => {
                 console.error("Fetch failed with status:", res.status, errData);
+                setError(`Failed to fetch data: ${errData.error?.message || res.statusText}`);
                 return { value: [] };
               });
             }
             return res.json();
           })
           .then((data) => {
-            setProgressRecords(data.value || []);
+            const records = data.value || [];
+            setAllProgressRecords(records);
+            setProgressRecords(records); // Initially, displayed records are all records
             console.log("Fetched data from Dataverse:", data);
           })
           .catch((err) => {
             console.error("Fetch processing failed:", err);
+            setError(`Fetch processing failed: ${err.message}`);
+            setAllProgressRecords([]);
             setProgressRecords([]);
-          });
+          })
+          .finally(() => setIsLoading(false));
       })
       .catch((err) => {
         console.error("Token acquisition failed:", err);
+        setError(`Token acquisition failed: ${err.message}`);
+        setAllProgressRecords([]);
         setProgressRecords([]);
+        setIsLoading(false);
       });
   }, [accounts, instance]);
 
   const handleEdit = (record) => {
     setEditingId(record.cr648_lessonevaluationid);
-    // Format date for input type="date" which expects YYYY-MM-DD
     const formattedDate = record.cr648_date ? new Date(record.cr648_date).toISOString().split('T')[0] : '';
     setEditFormData({ ...record, cr648_date: formattedDate });
   };
@@ -92,6 +128,8 @@ const LessonEvaluations = () => {
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
+    setIsLoading(true); // Indicate loading state
+    setError(null);
 
     const request = {
       scopes: [`${dataverseUrl}/.default`],
@@ -101,11 +139,9 @@ const LessonEvaluations = () => {
     try {
       const response = await instance.acquireTokenSilent(request);
       const token = response.accessToken;
-
-      // Prepare only the fields that are meant to be updated
       const updatePayload = {
         cr648_lessonplan: editFormData.cr648_lessonplan,
-        cr648_date: editFormData.cr648_date, // Ensure this is in a format Dataverse accepts (YYYY-MM-DD is usually fine for Date only fields)
+        cr648_date: editFormData.cr648_date,
         cr648_participantsevaluation: editFormData.cr648_participantsevaluation,
         cr648_coachname: editFormData.cr648_coachname,
       };
@@ -118,7 +154,7 @@ const LessonEvaluations = () => {
           'Content-Type': 'application/json',
           'OData-MaxVersion': '4.0',
           'OData-Version': '4.0',
-          'Prefer': 'return=representation' // Gets the updated record back
+          'Prefer': 'return=representation'
         },
         body: JSON.stringify(updatePayload),
       });
@@ -126,36 +162,40 @@ const LessonEvaluations = () => {
       if (!apiResponse.ok) {
         const errorData = await apiResponse.json();
         console.error("Update failed with status:", apiResponse.status, errorData);
-        // Optional: setError(errorData.error?.message || `Update failed: ${apiResponse.status}`);
+        setError(`Update failed: ${errorData.error?.message || apiResponse.statusText}`);
         throw new Error(`HTTP error! status: ${apiResponse.status}`);
       }
 
       const updatedRecord = await apiResponse.json();
-      setProgressRecords((prevRecords) =>
-        prevRecords.map((rec) =>
-          rec.cr648_lessonevaluationid === editingId ? updatedRecord : rec
-        )
+      const updatedRecords = allProgressRecords.map((rec) =>
+        rec.cr648_lessonevaluationid === editingId ? updatedRecord : rec
       );
+      setAllProgressRecords(updatedRecords);
+      // Re-apply filters after updating
+      applyFiltersAndSearch(updatedRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
       setEditingId(null);
       setEditFormData({});
       console.log("Record updated successfully:", updatedRecord);
 
     } catch (err) {
       console.error("Save operation failed:", err);
-      // Optional: setError(err.message || "Failed to save record");
+      setError(`Save operation failed: ${err.message}`);
+    } finally {
+      setIsLoading(false); // End loading state
     }
   };
 
-  // New: handle changes in the create record form
   const handleNewRecordChange = (event) => {
     const { name, value } = event.target;
     setNewRecord((prev) => ({ ...prev, [name]: value }));
   };
 
-  // New: handle create record submit
   const handleCreateRecord = async (event) => {
     event.preventDefault();
     if (accounts.length === 0) return;
+    setIsLoading(true);
+    setError(null);
+
     const request = {
       scopes: [`${dataverseUrl}/.default`],
       account: accounts[0],
@@ -163,12 +203,7 @@ const LessonEvaluations = () => {
     try {
       const response = await instance.acquireTokenSilent(request);
       const token = response.accessToken;
-      const payload = {
-        cr648_lessonplan: newRecord.cr648_lessonplan,
-        cr648_date: newRecord.cr648_date,
-        cr648_participantsevaluation: newRecord.cr648_participantsevaluation,
-        cr648_coachname: newRecord.cr648_coachname,
-      };
+      const payload = { ...newRecord };
       const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations`, {
         method: 'POST',
         headers: {
@@ -184,184 +219,204 @@ const LessonEvaluations = () => {
       if (!apiResponse.ok) {
         const errorData = await apiResponse.json();
         console.error("Create failed with status:", apiResponse.status, errorData);
+        setError(`Create failed: ${errorData.error?.message || apiResponse.statusText}`);
         throw new Error(`HTTP error! status: ${apiResponse.status}`);
       }
       const createdRecord = await apiResponse.json();
-      setProgressRecords((prev) => [createdRecord, ...prev]);
+      const updatedRecords = [createdRecord, ...allProgressRecords];
+      setAllProgressRecords(updatedRecords);
+      // Re-apply filters after creating
+      applyFiltersAndSearch(updatedRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
       setNewRecord({
         cr648_lessonplan: '',
         cr648_date: '',
         cr648_participantsevaluation: '',
         cr648_coachname: ''
       });
+      setShowCreateModal(false); // Close modal on success
       console.log("Record created successfully:", createdRecord);
     } catch (err) {
       console.error("Create operation failed:", err);
+      setError(`Create operation failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // New: handle search input change
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
+  const applyFiltersAndSearch = (recordsToFilter, currentSearchTerm, lessonPlan, dateFrom, dateTo, participantEval, coachName) => {
+    let filtered = recordsToFilter;
+
+    // General search
+    if (currentSearchTerm) {
+      const search = currentSearchTerm.toLowerCase();
+      filtered = filtered.filter((record) => {
+        const lessonPlanText = record.cr648_lessonplan || "";
+        const participantEvalText = record.cr648_participantsevaluation || "";
+        const coachNameText = record.cr648_coachname || "";
+        const dateText = record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "";
+        return (
+          lessonPlanText.toLowerCase().includes(search) ||
+          participantEvalText.toLowerCase().includes(search) ||
+          coachNameText.toLowerCase().includes(search) ||
+          dateText.includes(search)
+        );
+      });
+    }
+    
+    // Advanced filters
+    if (lessonPlan) {
+      filtered = filtered.filter(record => (record.cr648_lessonplan || "").toLowerCase().includes(lessonPlan.toLowerCase()));
+    }
+    if (participantEval) {
+      filtered = filtered.filter(record => (record.cr648_participantsevaluation || "").toLowerCase().includes(participantEval.toLowerCase()));
+    }
+    if (coachName) {
+      filtered = filtered.filter(record => (record.cr648_coachname || "").toLowerCase().includes(coachName.toLowerCase()));
+    }
+    if (dateFrom) {
+      filtered = filtered.filter(record => {
+        const recordDate = record.cr648_date ? new Date(record.cr648_date) : null;
+        // Adjust for timezone by setting hours to 0 to compare dates correctly
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0,0,0,0);
+        if (recordDate) recordDate.setHours(0,0,0,0);
+        return recordDate && recordDate >= fromDate;
+      });
+    }
+    if (dateTo) {
+      filtered = filtered.filter(record => {
+        const recordDate = record.cr648_date ? new Date(record.cr648_date) : null;
+        // Adjust for timezone by setting hours to 0 to compare dates correctly
+        const toDate = new Date(dateTo);
+        toDate.setHours(0,0,0,0);
+        if (recordDate) recordDate.setHours(0,0,0,0);
+        return recordDate && recordDate <= toDate;
+      });
+    }
+    setProgressRecords(filtered);
   };
+  
+  useEffect(() => {
+    applyFiltersAndSearch(allProgressRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
+  }, [searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName, allProgressRecords]);
 
-  // New: filter records based on search term
-  const filteredRecords = progressRecords.filter((record) => {
-    const lessonPlan = record.cr648_lessonplan || "";
-    const participantEval = record.cr648_participantsevaluation || "";
-    const coachName = record.cr648_coachname || "";
-    const date = record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "";
-    const search = searchTerm.toLowerCase();
-    return (
-      lessonPlan.toLowerCase().includes(search) ||
-      participantEval.toLowerCase().includes(search) ||
-      coachName.toLowerCase().includes(search) ||
-      date.includes(search)
-    );
-  });
-
-  // Advanced filter logic
-  const advancedFilteredRecords = filteredRecords.filter((record) => {
-    // Lesson Plan filter (partial match)
-    if (filterLessonPlan && !(record.cr648_lessonplan || "").toLowerCase().includes(filterLessonPlan.toLowerCase())) {
-      return false;
-    }
-    // Participant's Evaluation filter (partial match)
-    if (filterParticipantEval && !(record.cr648_participantsevaluation || "").toLowerCase().includes(filterParticipantEval.toLowerCase())) {
-      return false;
-    }
-    // Coach Name filter (partial match)
-    if (filterCoachName && !(record.cr648_coachname || "").toLowerCase().includes(filterCoachName.toLowerCase())) {
-      return false;
-    }
-    // Date range filter
-    if (filterDateFrom) {
-      const recordDate = record.cr648_date ? new Date(record.cr648_date) : null;
-      if (!recordDate || recordDate < new Date(filterDateFrom)) {
-        return false;
-      }
-    }
-    if (filterDateTo) {
-      const recordDate = record.cr648_date ? new Date(record.cr648_date) : null;
-      if (!recordDate || recordDate > new Date(filterDateTo)) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  // Optional: Handle loading and error states in the UI
-  // if (isLoading) return <div>Loading records...</div>;
-  // if (error) return <div>Error loading records: {error}</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Lesson Evaluations</h2>
-      {/* Search box */}
-      <input
-        type="text"
-        placeholder="Search records..."
-        value={searchTerm}
-        onChange={handleSearchChange}
-        className="mb-4 p-2 border border-gray-300 rounded w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-      />
-      {/* Advanced filters */}
-      <div className="flex flex-wrap gap-4 mb-4">
-        <input
-          type="text"
-          placeholder="Filter by Lesson Plan"
-          value={filterLessonPlan}
-          onChange={e => setFilterLessonPlan(e.target.value)}
-          className="p-2 border border-gray-300 rounded flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Lesson Evaluations
+      </Typography>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {isLoading && <CircularProgress sx={{ display: 'block', margin: '20px auto' }} />}
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <TextField
+          label="Search Records"
+          variant="outlined"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ width: '40%' }}
         />
-        <input
-          type="date"
-          placeholder="From Date"
-          value={filterDateFrom}
-          onChange={e => setFilterDateFrom(e.target.value)}
-          className="p-2 border border-gray-300 rounded flex-1 min-w-[140px] focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="date"
-          placeholder="To Date"
-          value={filterDateTo}
-          onChange={e => setFilterDateTo(e.target.value)}
-          className="p-2 border border-gray-300 rounded flex-1 min-w-[140px] focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="text"
-          placeholder="Filter by Participant's Evaluation"
-          value={filterParticipantEval}
-          onChange={e => setFilterParticipantEval(e.target.value)}
-          className="p-2 border border-gray-300 rounded flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="text"
-          placeholder="Filter by Coach Name"
-          value={filterCoachName}
-          onChange={e => setFilterCoachName(e.target.value)}
-          className="p-2 border border-gray-300 rounded flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
-      {/* Create record form */}
-      <form onSubmit={handleCreateRecord} className="mb-6 border border-gray-200 p-4 rounded-lg bg-gray-50 shadow-sm">
-        <h3 className="text-lg font-semibold mb-2">Create New Record</h3>
-        <div className="flex flex-wrap gap-4 mb-2">
-          <input type="text" name="cr648_lessonplan" placeholder="Lesson Plan" value={newRecord.cr648_lessonplan} onChange={handleNewRecordChange} required className="p-2 border border-gray-300 rounded flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400" />
-          <input type="date" name="cr648_date" placeholder="Date" value={newRecord.cr648_date} onChange={handleNewRecordChange} required className="p-2 border border-gray-300 rounded flex-1 min-w-[140px] focus:outline-none focus:ring-2 focus:ring-blue-400" />
-          <input type="text" name="cr648_participantsevaluation" placeholder="Participant's Evaluation" value={newRecord.cr648_participantsevaluation} onChange={handleNewRecordChange} className="p-2 border border-gray-300 rounded flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400" />
-          <input type="text" name="cr648_coachname" placeholder="Coach Name" value={newRecord.cr648_coachname} onChange={handleNewRecordChange} className="p-2 border border-gray-300 rounded flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400" />
-        </div>
-        <button type="submit" className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Create</button>
-      </form>
-      {advancedFilteredRecords && advancedFilteredRecords.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-2 px-4 border-b text-left">Lesson Plan</th>
-                <th className="py-2 px-4 border-b text-left">Evaluation Date</th>
-                <th className="py-2 px-4 border-b text-left">Participant's Evaluation</th>
-                <th className="py-2 px-4 border-b text-left">Coach Name</th>
-                <th className="py-2 px-4 border-b text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {advancedFilteredRecords.map((record) => (
-                record ? (
-                  <tr key={record.cr648_lessonevaluationid} className="hover:bg-gray-50">
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setShowCreateModal(true)}
+        >
+          Create New Evaluation
+        </Button>
+      </Box>
+
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h6" gutterBottom>Advanced Filters</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField fullWidth label="Lesson Plan" value={filterLessonPlan} onChange={e => setFilterLessonPlan(e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField fullWidth label="From Date" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField fullWidth label="To Date" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField fullWidth label="Participant's Evaluation" value={filterParticipantEval} onChange={e => setFilterParticipantEval(e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField fullWidth label="Coach Name" value={filterCoachName} onChange={e => setFilterCoachName(e.target.value)} />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <Dialog open={showCreateModal} onClose={() => setShowCreateModal(false)}>
+        <DialogTitle>Create New Lesson Evaluation</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{mb: 2}}>
+            Fill in the details for the new lesson evaluation.
+          </DialogContentText>
+          <TextField autoFocus margin="dense" name="cr648_lessonplan" label="Lesson Plan" type="text" fullWidth variant="standard" value={newRecord.cr648_lessonplan} onChange={handleNewRecordChange} required />
+          <TextField margin="dense" name="cr648_date" label="Date" type="date" fullWidth variant="standard" value={newRecord.cr648_date} onChange={handleNewRecordChange} InputLabelProps={{ shrink: true }} required />
+          <TextField margin="dense" name="cr648_participantsevaluation" label="Participant's Evaluation" type="text" fullWidth variant="standard" value={newRecord.cr648_participantsevaluation} onChange={handleNewRecordChange} />
+          <TextField margin="dense" name="cr648_coachname" label="Coach Name" type="text" fullWidth variant="standard" value={newRecord.cr648_coachname} onChange={handleNewRecordChange} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCreateModal(false)} startIcon={<CancelIcon />}>Cancel</Button>
+          <Button onClick={handleCreateRecord} variant="contained" startIcon={<AddIcon />} disabled={isLoading}>
+            {isLoading ? <CircularProgress size={24} /> : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {progressRecords && progressRecords.length > 0 ? (
+        <TableContainer component={Paper}>
+          <Table sx={{ minWidth: 650 }} aria-label="lesson evaluations table">
+            <TableHead sx={{ backgroundColor: 'primary.main' }}>
+              <TableRow>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Lesson Plan</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Evaluation Date</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Participant's Evaluation</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coach Name</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {progressRecords.map((record) => (
+                record ? ( // Ensure record is not null/undefined
+                  <TableRow key={record.cr648_lessonevaluationid} hover>
                     {editingId === record.cr648_lessonevaluationid ? (
-                      <React.Fragment>
-                        <td className="py-2 px-4 border-b"><input type="text" name="cr648_lessonplan" value={editFormData.cr648_lessonplan || ''} onChange={handleEditFormChange} className="p-1 border border-gray-300 rounded w-full" /></td>
-                        <td className="py-2 px-4 border-b"><input type="date" name="cr648_date" value={editFormData.cr648_date || ''} onChange={handleEditFormChange} className="p-1 border border-gray-300 rounded w-full" /></td>
-                        <td className="py-2 px-4 border-b"><input type="text" name="cr648_participantsevaluation" value={editFormData.cr648_participantsevaluation || ''} onChange={handleEditFormChange} className="p-1 border border-gray-300 rounded w-full" /></td>
-                        <td className="py-2 px-4 border-b"><input type="text" name="cr648_coachname" value={editFormData.cr648_coachname || ''} onChange={handleEditFormChange} className="p-1 border border-gray-300 rounded w-full" /></td>
-                        <td className="py-2 px-4 border-b">
-                          <button onClick={handleSaveEdit} className="mr-2 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition">Save</button>
-                          <button onClick={handleCancelEdit} className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition">Cancel</button>
-                        </td>
-                      </React.Fragment>
+                      <>
+                        <TableCell><TextField size="small" name="cr648_lessonplan" value={editFormData.cr648_lessonplan || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
+                        <TableCell><TextField size="small" type="date" name="cr648_date" value={editFormData.cr648_date || ''} onChange={handleEditFormChange} fullWidth InputLabelProps={{ shrink: true }} /></TableCell>
+                        <TableCell><TextField size="small" name="cr648_participantsevaluation" value={editFormData.cr648_participantsevaluation || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
+                        <TableCell><TextField size="small" name="cr648_coachname" value={editFormData.cr648_coachname || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
+                        <TableCell>
+                          <Button onClick={handleSaveEdit} startIcon={<SaveIcon />} variant="contained" color="success" sx={{ mr: 1 }} disabled={isLoading}>
+                            {isLoading && editingId === record.cr648_lessonevaluationid ? <CircularProgress size={20} /> : "Save"}
+                          </Button>
+                          <Button onClick={handleCancelEdit} startIcon={<CancelIcon />} variant="outlined" color="secondary">Cancel</Button>
+                        </TableCell>
+                      </>
                     ) : (
-                      <React.Fragment>
-                        <td className="py-2 px-4 border-b">{record.cr648_lessonplan || "N/A"}</td>
-                        <td className="py-2 px-4 border-b">{record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "N/A"}</td>
-                        <td className="py-2 px-4 border-b">{record.cr648_participantsevaluation || "No comments"}</td>
-                        <td className="py-2 px-4 border-b">{record.cr648_coachname || "N/A"}</td>
-                        <td className="py-2 px-4 border-b">
-                          <button onClick={() => handleEdit(record)} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition">Edit</button>
-                        </td>
-                      </React.Fragment>
+                      <>
+                        <TableCell>{record.cr648_lessonplan || "N/A"}</TableCell>
+                        <TableCell>{record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "N/A"}</TableCell>
+                        <TableCell>{record.cr648_participantsevaluation || "No comments"}</TableCell>
+                        <TableCell>{record.cr648_coachname || "N/A"}</TableCell>
+                        <TableCell>
+                          <Button onClick={() => handleEdit(record)} startIcon={<EditIcon />} variant="outlined" color="primary">Edit</Button>
+                        </TableCell>
+                      </>
                     )}
-                  </tr>
+                  </TableRow>
                 ) : null
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       ) : (
-        <p className="text-gray-500">No lesson evaluation records found.</p>
+        !isLoading && <Typography sx={{ mt: 2, textAlign: 'center' }}>No lesson evaluation records found.</Typography>
       )}
-    </div>
+    </Container>
   );
 };
 

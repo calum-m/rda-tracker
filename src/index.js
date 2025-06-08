@@ -4,7 +4,7 @@ import App from "./App";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
-import './tailwind.css'; // Changed back from './index.css' to './tailwind.css'
+import './index.css'; // Corrected import: Ensure this points to your global CSS file for MUI
 
 const msalInstance = new PublicClientApplication(msalConfig);
 

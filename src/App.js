@@ -1,12 +1,35 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link as RouterLink, Navigate } from "react-router-dom";
 import { useMsal, AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import LessonEvaluations from "./LessonEvaluations"; // Corrected import
 import ParticipantInfo from "./ParticipantInfo"; // Import the new component
 
+// MUI Imports
+import CssBaseline from '@mui/material/CssBaseline';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Box from '@mui/material/Box';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
 const loginRequest = {
   scopes: ["https://orgdbcfb9bc.crm11.dynamics.com/.default"],
 };
+
+// Create a default MUI theme
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2', // Example: MUI blue
+    },
+    secondary: {
+      main: '#dc004e', // Example: MUI pink
+    },
+  },
+});
+
 
 const App = () => {
   const { instance, accounts } = useMsal();
@@ -25,70 +48,73 @@ const App = () => {
     });
   };
 
-  // Apply base Tailwind classes for background and text color to the main app container
-  // This ensures consistency and leverages Tailwind's theme.
   return (
-    <Router>
-      <div className="App bg-gray-100 text-gray-900 min-h-screen flex flex-col">
-        <header className="bg-indigo-600 text-white p-4 shadow-md">
-          <div className="container mx-auto flex flex-wrap justify-between items-center">
-            <h1 className="text-xl font-semibold mr-auto">RDA Tracker</h1>
-            <nav className="flex items-center space-x-2 sm:space-x-4 order-last sm:order-none w-full sm:w-auto mt-2 sm:mt-0 justify-center sm:justify-start">
-              {accounts.length > 0 && (
-                <>
-                  <Link to="/participant-info" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-white">Participant Info</Link>
-                  <Link to="/lesson-evaluations" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-white">Lesson Evaluations</Link>
-                </>
-              )}
-            </nav>
-            <div className="sm:ml-4 mt-2 sm:mt-0">
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <AppBar position="static">
+            <Toolbar>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                RDA Tracker
+              </Typography>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                {accounts.length > 0 && (
+                  <>
+                    <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
+                    <Button color="inherit" component={RouterLink} to="/lesson-evaluations">Lesson Evaluations</Button>
+                  </>
+                )}
+              </Box>
               {accounts.length > 0 ? (
-                <button 
-                  onClick={handleLogout} 
-                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md text-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-red-500 w-full sm:w-auto"
-                >
-                  Logout
-                </button>
+                <Button color="inherit" onClick={handleLogout}>Logout</Button>
               ) : (
-                <button 
-                  onClick={handleLogin} 
-                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-green-500 w-full sm:w-auto"
-                >
-                  Login
-                </button>
+                <Button color="inherit" onClick={handleLogin}>Login</Button>
               )}
-            </div>
-          </div>
-        </header>
+            </Toolbar>
+          </AppBar>
 
-        <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
-          <AuthenticatedTemplate>
-            <Routes>
-              <Route path="/participant-info" element={<ParticipantInfo />} />
-              <Route path="/lesson-evaluations" element={<LessonEvaluations />} />
-              <Route path="/" element={<Navigate to="/participant-info" />} />
-            </Routes>
-          </AuthenticatedTemplate>
+          {/* Mobile Navigation (Optional - can be implemented with a Drawer) */}
+          {accounts.length > 0 && (
+            <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'center', p: 1, bgcolor: 'primary.main' }}>
+                 <Button sx={{color: 'white'}} component={RouterLink} to="/participant-info">Participant Info</Button>
+                 <Button sx={{color: 'white'}} component={RouterLink} to="/lesson-evaluations">Lesson Evaluations</Button>
+            </Box>
+          )}
 
-          <UnauthenticatedTemplate>
-            <div className="text-center p-10">
-              <h2 className="text-2xl font-semibold mb-4">Welcome</h2>
-              <p className="mb-6 text-gray-700">Please login to access the application.</p>
-              <button 
-                onClick={handleLogin} 
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Login
-              </button>
-            </div>
-          </UnauthenticatedTemplate>
-        </main>
 
-        <footer className="bg-gray-800 text-white text-center p-4 mt-auto">
-          <p>&copy; {new Date().getFullYear()} RDA Tracker. All rights reserved.</p>
-        </footer>
-      </div>
-    </Router>
+          <Container component="main" sx={{ flexGrow: 1, py: 3 }}>
+            <AuthenticatedTemplate>
+              <Routes>
+                <Route path="/participant-info" element={<ParticipantInfo />} />
+                <Route path="/lesson-evaluations" element={<LessonEvaluations />} />
+                <Route path="/" element={<Navigate to="/participant-info" />} />
+              </Routes>
+            </AuthenticatedTemplate>
+
+            <UnauthenticatedTemplate>
+              <Box sx={{ textAlign: 'center', mt: 8 }}>
+                <Typography variant="h4" component="h2" gutterBottom>
+                  Welcome
+                </Typography>
+                <Typography variant="subtitle1" sx={{ mb: 3 }}>
+                  Please login to access the application.
+                </Typography>
+                <Button variant="contained" color="primary" onClick={handleLogin} size="large">
+                  Login
+                </Button>
+              </Box>
+            </UnauthenticatedTemplate>
+          </Container>
+
+          <Box component="footer" sx={{ bgcolor: 'background.paper', py: 3, mt: 'auto', textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              &copy; {new Date().getFullYear()} RDA Tracker. All rights reserved.
+            </Typography>
+          </Box>
+        </Box>
+      </Router>
+    </ThemeProvider>
   );
 };
 

@@ -1,6 +1,34 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useMsal } from "@azure/msal-react";
 
+// MUI Imports
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Paper from '@mui/material/Paper';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import IconButton from '@mui/material/IconButton';
+import Collapse from '@mui/material/Collapse';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+
+// Icons
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import AddIcon from '@mui/icons-material/Add';
+
 // Dataverse URL (should ideally be in a shared config or passed as prop if different entities use different base URLs)
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
 
@@ -433,120 +461,189 @@ function ParticipantInfo() {
 
 
   return (
-    <div>
-      <h1>Participant Information</h1>
-      {error && <div className="error">{error}</div>}
-      <div>
-        <input
-          type="text"
-          placeholder="Search participants..."
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" gutterBottom component="h1">
+        Participant Information
+      </Typography>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+        <TextField
+          label="Search participants..."
+          variant="outlined"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ flexGrow: 1, minWidth: '200px' }}
         />
-        <button onClick={() => setIsCreateModalOpen(true)}>Create New Participant</button>
-      </div>
-      {isLoading ? (
-        <div>Loading...</div>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>First Name</th>
-              <th>Last Name</th>
-              <th>Date of Birth</th>
-              <th>Email</th>
-              <th>Phone Number</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {participantData.map(participant => (
-              <React.Fragment key={participant[basicInfoFields.id]}>
-                <tr>
-                  <td>{valueToString(participant[basicInfoFields.firstName])}</td>
-                  <td>{valueToString(participant[basicInfoFields.lastName])}</td>
-                  <td>{formatDate(participant[basicInfoFields.dob])}</td>
-                  <td>{valueToString(participant['cr648_emailaddress'])}</td>
-                  <td>{valueToString(participant['cr648_phonenumber'])}</td>
-                  <td>
-                    <button onClick={() => handleToggleDetails(participant[basicInfoFields.id])}>
-                      {expandedParticipantId === participant[basicInfoFields.id] ? 'Hide Details' : 'View Details'}
-                    </button>
-                  </td>
-                </tr>
-                {expandedParticipantId === participant[basicInfoFields.id] && (
-                  <tr>
-                    <td colSpan="6"> {/* Adjusted colSpan to match number of headers */}
-                      <div className="p-4 bg-gray-100 rounded-b-md">
-                        <h3 className="text-lg font-semibold mb-2">Edit Participant Details</h3>
-                        {error && <div className="text-red-500 mb-2">{error}</div>}
-                        <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
-                          {Object.keys(creationFormFields).map(fieldKey => {
-                            const field = creationFormFields[fieldKey];
-                            // Skip non-editable or ID fields if necessary, though creationFormFields should be fine
-                            if (fieldKey === basicInfoFields.id) return null;
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          Create New Participant
+        </Button>
+      </Box>
 
-                            return (
-                              <div key={fieldKey} className="flex flex-col">
-                                <label htmlFor={fieldKey} className="mb-1 text-sm font-medium text-gray-700">
-                                  {field.label}{field.required ? '*' : ''}
-                                </label>
-                                <input
-                                  type={field.type === 'checkbox' ? 'checkbox' : field.type}
-                                  id={fieldKey}
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table aria-label="participant table">
+            <TableHead>
+              <TableRow>
+                <TableCell /> {/* For expand/collapse icon */}
+                <TableCell>First Name</TableCell>
+                <TableCell>Last Name</TableCell>
+                <TableCell>Date of Birth</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Phone Number</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {participantData.map((participant) => (
+                <React.Fragment key={participant[basicInfoFields.id]}>
+                  <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
+                    <TableCell>
+                      <IconButton
+                        aria-label="expand row"
+                        size="small"
+                        onClick={() => handleToggleDetails(participant[basicInfoFields.id])}
+                      >
+                        {expandedParticipantId === participant[basicInfoFields.id] ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                      </IconButton>
+                    </TableCell>
+                    <TableCell component="th" scope="row">
+                      {valueToString(participant[basicInfoFields.firstName])}
+                    </TableCell>
+                    <TableCell>{valueToString(participant[basicInfoFields.lastName])}</TableCell>
+                    <TableCell>{formatDate(participant[basicInfoFields.dob])}</TableCell>
+                    <TableCell>{valueToString(participant['cr648_emailaddress'])}</TableCell>
+                    <TableCell>{valueToString(participant['cr648_phonenumber'])}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleToggleDetails(participant[basicInfoFields.id])}
+                      >
+                        {expandedParticipantId === participant[basicInfoFields.id] ? 'Hide' : 'View/Edit'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                      <Collapse in={expandedParticipantId === participant[basicInfoFields.id]} timeout="auto" unmountOnExit>
+                        <Box sx={{ margin: 1, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                          <Typography variant="h6" gutterBottom component="div">
+                            Edit Participant Details
+                          </Typography>
+                          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                          <Box component="form" onSubmit={(e) => e.preventDefault()} sx={{ '& .MuiTextField-root': { m: 1, width: 'calc(50% - 16px)' } , display: 'flex', flexWrap: 'wrap'}}>
+                            {Object.keys(creationFormFields).map(fieldKey => {
+                              const field = creationFormFields[fieldKey];
+                              if (fieldKey === basicInfoFields.id) return null;
+
+                              if (field.type === 'checkbox') {
+                                return (
+                                  <FormControlLabel
+                                    key={fieldKey}
+                                    control={
+                                      <Checkbox
+                                        checked={editFormData[fieldKey] || false}
+                                        onChange={handleEditFormChange}
+                                        name={fieldKey}
+                                      />
+                                    }
+                                    label={field.label + (field.required ? '*' : '')}
+                                    sx={{width: 'calc(50% - 16px)', m:1}}
+                                  />
+                                );
+                              }
+                              return (
+                                <TextField
+                                  key={fieldKey}
+                                  label={field.label}
+                                  type={field.type}
                                   name={fieldKey}
-                                  checked={field.type === 'checkbox' ? (editFormData[fieldKey] || false) : undefined}
-                                  value={field.type !== 'checkbox' ? (editFormData[fieldKey] || '') : undefined}
+                                  value={editFormData[fieldKey] || ''}
                                   onChange={handleEditFormChange}
-                                  className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                  required={field.required}
+                                  variant="outlined"
+                                  size="small"
+                                  InputLabelProps={field.type === 'date' ? { shrink: true } : {}}
                                 />
-                              </div>
-                            );
-                          })}
-                          {isUpdating && <p className="text-blue-500">Saving...</p>}
-                          {/* Save button is implicit via handleToggleDetails auto-save */}
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                              );
+                            })}
+                          </Box>
+                          {isUpdating && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                                <CircularProgress size={20} sx={{mr:1}}/> 
+                                <Typography>Saving...</Typography>
+                            </Box>
+                          )}
+                          {/* Save is implicit on toggle/blur */}
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
-      {/* Create Participant Modal */}
-      {isCreateModalOpen && (
-        <div className="modal">
-          <h2>Create Participant</h2>
-          {error && <div className="error">{error}</div>}
-          <form onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }}>
+      {/* Create Participant Modal/Dialog */}
+      <Dialog open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New Participant</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Box component="form" id="createParticipantForm" onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }} sx={{ '& .MuiTextField-root': { my: 1 }, display: 'flex', flexDirection: 'column' }}>
             {Object.keys(creationFormFields).map(fieldKey => {
               const field = creationFormFields[fieldKey];
-              return (
-                <div key={fieldKey}>
-                  <label>{field.label}{field.required ? '*' : ''}</label>
-                  <input
-                    type={field.type}
-                    name={fieldKey}
-                    value={newParticipant[fieldKey] || ''}
-                    onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.value })}
-                    required={field.required}
+              if (field.type === 'checkbox') {
+                return (
+                  <FormControlLabel
+                    key={fieldKey}
+                    control={
+                      <Checkbox
+                        checked={newParticipant[fieldKey] || false}
+                        onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.checked })}
+                        name={fieldKey}
+                      />
+                    }
+                    label={field.label + (field.required ? '*' : '')}
                   />
-                </div>
+                );
+              }
+              return (
+                <TextField
+                  key={fieldKey}
+                  label={field.label}
+                  type={field.type}
+                  name={fieldKey}
+                  value={newParticipant[fieldKey] || ''}
+                  onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.value })}
+                  required={field.required}
+                  variant="outlined"
+                  fullWidth
+                  InputLabelProps={field.type === 'date' ? { shrink: true } : {}}
+                />
               );
             })}
-            <div>
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create Participant'}
-              </button>
-              <button type="button" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+          <Button type="submit" form="createParticipantForm" variant="contained" disabled={isSubmitting}>
+            {isSubmitting ? <CircularProgress size={24} /> : 'Create Participant'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
 
