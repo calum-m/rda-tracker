@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link as RouterLink, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from "react-router-dom";
 import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper } from '@mui/material';
 import { CacheProvider } from '@emotion/react'; // Import CacheProvider from @emotion/react
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
