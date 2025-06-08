@@ -103,9 +103,12 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <AppBar position="static">
               <Toolbar>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                {/* <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                   RDA Tracker
-                </Typography>
+                </Typography> */}
+                <Box sx={{ flexGrow: 1 }}>
+                  <img src={process.env.PUBLIC_URL + '/RDALOGO.svg'} alt="RDA Tracker Logo" style={{ height: '40px', marginRight: '10px' }} />
+                </Box>
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                   {accounts.length > 0 && (
                     <>

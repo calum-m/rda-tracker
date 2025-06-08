@@ -28,7 +28,6 @@ import DialogContentText from '@mui/material/DialogContentText'; // Added Dialog
 import Grid from '@mui/material/Grid'; // Import Grid
 
 // Icons
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
@@ -503,7 +502,7 @@ function ParticipantInfo() {
       setEditFormData({});
       _setOriginalEditData({}); // Use prefixed setter
     }
-  }, [expandedParticipantId, editFormData, originalEditData, handleUpdateParticipant, participantData]); // Removed basicInfoFields
+  }, [expandedParticipantId, participantData, _setOriginalEditData, setEditFormData, setExpandedParticipantId]); // Removed basicInfoFields and unnecessary dependencies
 
 
   const handleEditFormChange = (e) => {
