@@ -5,6 +5,7 @@ import { CacheProvider } from '@emotion/react'; // Import CacheProvider from @em
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
 import CoachingSessionPlans from "./LessonEvaluations"; // Renamed import, path remains the same
 import ParticipantInfo from "./ParticipantInfo"; // Import the new component
+import HelpPage from "./HelpPage"; // Import the HelpPage component
 import LockOpenIcon from '@mui/icons-material/LockOpen'; // Added import
 import createCache from '@emotion/cache'; // Import createCache
 
@@ -24,7 +25,7 @@ const loginRequest = {
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2', // Example: MUI blue
+      main: '#57ab5d', // Example: MUI blue
     },
     secondary: {
       main: '#dc004e', // Example: MUI pink
@@ -110,6 +111,7 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                     <>
                       <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
                       <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
+                      <Button color="inherit" component={RouterLink} to="/help">Help</Button> {/* Added Help link */}
                       <Button color="inherit" onClick={handleLogout}>Logout</Button>
                     </>
                   )}
@@ -125,6 +127,7 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                   <Routes>
                     <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} />
                     <Route path="/participant-info" element={<ParticipantInfo />} />
+                    <Route path="/help" element={<HelpPage />} /> {/* Added HelpPage route */}
                     <Route path="/" element={<Navigate to="/coaching-session-plans" />} /> {/* Default route */}
                   </Routes>
                 )}
