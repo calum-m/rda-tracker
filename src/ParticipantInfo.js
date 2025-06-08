@@ -32,7 +32,6 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
-import EditIcon from '@mui/icons-material/Edit'; // Added EditIcon for consistency if needed later
 
 // Dataverse URL (should ideally be in a shared config or passed as prop if different entities use different base URLs)
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
