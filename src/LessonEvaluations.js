@@ -28,7 +28,7 @@ import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIco
 // Replace this with your Dataverse URL
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
 
-const LessonEvaluations = () => {
+const CoachingSessionPlans = () => { // Renamed component
   const { instance, accounts } = useMsal();
   const [progressRecords, setProgressRecords] = useState([]);
   const [allProgressRecords, setAllProgressRecords] = useState([]); // To store all records fetched
@@ -381,7 +381,7 @@ const LessonEvaluations = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Lesson Evaluations
+        Coaching Session Plans {/* Renamed title */}
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -400,7 +400,7 @@ const LessonEvaluations = () => {
           startIcon={<AddIcon />}
           onClick={() => setShowCreateModal(true)}
         >
-          Create New Evaluation
+          Create New Coaching Session Plan {/* Renamed button text */}
         </Button>
       </Box>
 
@@ -426,14 +426,14 @@ const LessonEvaluations = () => {
       </Paper>
 
       <Dialog open={showCreateModal} onClose={() => setShowCreateModal(false)}>
-        <DialogTitle>Create New Lesson Evaluation</DialogTitle>
+        <DialogTitle>Create New Coaching Session Plan</DialogTitle> {/* Renamed dialog title */}
         <DialogContent>
           <DialogContentText sx={{mb: 2}}>
-            Fill in the details for the new lesson evaluation.
+            Fill in the details for the new coaching session plan. {/* Renamed dialog text */}
           </DialogContentText>
-          <TextField autoFocus margin="dense" name="cr648_lessonplan" label="Lesson Plan" type="text" fullWidth variant="standard" value={newRecord.cr648_lessonplan} onChange={handleNewRecordChange} required />
+          <TextField autoFocus margin="dense" name="cr648_lessonplan" label="Coaching Session Plan Details" type="text" fullWidth variant="standard" value={newRecord.cr648_lessonplan} onChange={handleNewRecordChange} required /> {/* Renamed label */}
           <TextField margin="dense" name="cr648_date" label="Date" type="date" fullWidth variant="standard" value={newRecord.cr648_date} onChange={handleNewRecordChange} InputLabelProps={{ shrink: true }} required />
-          <TextField margin="dense" name="cr648_participantsevaluation" label="Participant's Evaluation" type="text" fullWidth variant="standard" value={newRecord.cr648_participantsevaluation} onChange={handleNewRecordChange} />
+          <TextField margin="dense" name="cr648_participantsevaluation" label="Participant's Evaluation/Notes" type="text" fullWidth variant="standard" value={newRecord.cr648_participantsevaluation} onChange={handleNewRecordChange} /> {/* Renamed label */}
           <TextField margin="dense" name="cr648_coachname" label="Coach Name" type="text" fullWidth variant="standard" value={newRecord.cr648_coachname} onChange={handleNewRecordChange} />
         </DialogContent>
         <DialogActions>
@@ -454,7 +454,7 @@ const LessonEvaluations = () => {
         <DialogTitle id="alert-dialog-title-le">{"Confirm Delete"}</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description-le">
-            Are you sure you want to delete this lesson evaluation? This action cannot be undone.
+            Are you sure you want to delete this coaching session plan? This action cannot be undone. {/* Renamed dialog text */}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -473,18 +473,18 @@ const LessonEvaluations = () => {
 
       {!isLoading && !error && progressRecords.length === 0 && (
         <Typography sx={{textAlign: 'center', my: 3}}>
-          {allProgressRecords.length === 0 ? "No lesson evaluations found. Click \"Create New Evaluation\" to add one." : "No records match your current filter criteria."}
+          {allProgressRecords.length === 0 ? "No coaching session plans found. Click \"Create New Coaching Session Plan\" to add one." : "No records match your current filter criteria."} {/* Renamed text */}
         </Typography>
       )}
 
       {progressRecords && progressRecords.length > 0 ? (
         <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="lesson evaluations table">
+          <Table sx={{ minWidth: 650 }} aria-label="coaching session plans table"> {/* Renamed aria-label */}
             <TableHead sx={{ backgroundColor: 'primary.main' }}>
               <TableRow>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Lesson Plan</TableCell>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Evaluation Date</TableCell>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Participant's Evaluation</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coaching Session Plan Details</TableCell> {/* Renamed table header */}
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Date</TableCell> {/* Renamed table header to be more generic */}
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Participant's Evaluation/Notes</TableCell> {/* Renamed table header */}
                 <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coach Name</TableCell>
                 <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
@@ -535,10 +535,10 @@ const LessonEvaluations = () => {
           </Table>
         </TableContainer>
       ) : (
-        !isLoading && <Typography sx={{ mt: 2, textAlign: 'center' }}>No lesson evaluation records found.</Typography>
+        !isLoading && <Typography sx={{ mt: 2, textAlign: 'center' }}>No coaching session plan records found.</Typography> /* Renamed text */
       )}
     </Container>
   );
 };
 
-export default LessonEvaluations;
+export default CoachingSessionPlans; // Renamed export

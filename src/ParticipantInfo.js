@@ -25,6 +25,7 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Container from '@mui/material/Container'; // Added Container import
 import DialogContentText from '@mui/material/DialogContentText'; // Added DialogContentText
+import Grid from '@mui/material/Grid'; // Import Grid
 
 // Icons
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -116,28 +117,31 @@ const basicInfoFields = {
 // Define fields for the creation form
 // IMPORTANT: User needs to verify/update these with actual Dataverse field names
 const creationFormFields = {
-  [basicInfoFields.firstName]: { label: 'First Name', type: 'text', required: true },
-  [basicInfoFields.lastName]: { label: 'Last Name', type: 'text', required: true },
-  [basicInfoFields.dob]: { label: 'Date of Birth', type: 'date', required: false },
-  'cr648_emailaddress': { label: 'Email', type: 'email', required: false },
-  'cr648_phonenumber': { label: 'Phone Number', type: 'tel', required: false },
-  'cr648_mobilenumber': { label: 'Mobile Number', type: 'tel', required: false },
-  'cr648_addressline1': { label: 'Address Line 1', type: 'text', required: false },
-  'cr648_addressline2': { label: 'Address Line 2', type: 'text', required: false },
-  'cr648_addressline3': { label: 'Address Line 3', type: 'text', required: false },
-  'cr648_postalcode': { label: 'Postal Code', type: 'text', required: false },
-  'cr648_guardianorparent': { label: 'Guardian/Parent Name', type: 'text', required: false },
-  'cr648_guardianphone': { label: 'Guardian Phone', type: 'tel', required: false },
-  // Add other fields from the image if needed, e.g.:
-  // 'cr648_age': { label: 'Age', type: 'number', required: false },
-  // 'cr648_dataprotectionconsent': { label: 'Data Protection Consent', type: 'checkbox', required: false }, // Note: boolean fields might need special handling for 'checkbox' type
-  // 'cr648_disabilitystatus': { label: 'Disability Status', type: 'text', required: false },
-  // 'cr648_epilepsystatus': { label: 'Epilepsy Status', type: 'text', required: false },
-  // 'cr648_heightincm': { label: 'Height (cm)', type: 'number', required: false },
-  // 'cr648_photosconsent': { label: 'Photos Consent', type: 'checkbox', required: false },
-  // 'cr648_startdate': { label: 'Start Date', type: 'date', required: false },
-  // 'cr648_volunteerstatus': { label: 'Volunteer Status', type: 'text', required: false },
-  // 'cr648_weightinkg': { label: 'Weight (kg)', type: 'number', required: false },
+  [basicInfoFields.firstName]: { label: 'First Name', type: 'text', required: true, gridSpan: 6 },
+  [basicInfoFields.lastName]: { label: 'Last Name', type: 'text', required: true, gridSpan: 6 },
+  [basicInfoFields.dob]: { label: 'Date of Birth', type: 'date', required: false, gridSpan: 6 },
+  'cr648_age': { label: 'Age', type: 'number', required: false, gridSpan: 6 },
+  'cr648_emailaddress': { label: 'Email', type: 'email', required: false, gridSpan: 6 },
+  'cr648_phonenumber': { label: 'Phone Number', type: 'tel', required: false, gridSpan: 6 },
+  'cr648_mobilenumber': { label: 'Mobile Number', type: 'tel', required: false, gridSpan: 6 },
+  'cr648_addressline1': { label: 'Address Line 1', type: 'text', required: false, gridSpan: 12 },
+  'cr648_addressline2': { label: 'Address Line 2', type: 'text', required: false, gridSpan: 12 },
+  'cr648_addressline3': { label: 'Address Line 3', type: 'text', required: false, gridSpan: 12 },
+  'cr648_postalcode': { label: 'Postal Code', type: 'text', required: false, gridSpan: 6 },
+  'cr648_guardianorparent': { label: 'Guardian/Parent Name', type: 'text', required: false, gridSpan: 6 }, // Assuming cr648_guardiansnorparent was a typo
+  'cr648_guardianphone': { label: 'Guardian Phone', type: 'tel', required: false, gridSpan: 6 },
+  'cr648_heightincm': { label: 'Height (cm)', type: 'number', required: false, gridSpan: 6 },
+  'cr648_heightinftandin': { label: 'Height (ft/in)', type: 'text', required: false, gridSpan: 6 },
+  'cr648_weightinkg': { label: 'Weight (kg)', type: 'number', required: false, gridSpan: 6 },
+  'cr648_weightinstones': { label: 'Weight (stones/lbs)', type: 'text', required: false, gridSpan: 6 },
+  'cr648_disabilitystatus': { label: 'Disability Status', type: 'text', required: false, gridSpan: 12 },
+  'cr648_epilepsystatus': { label: 'Epilepsy Status', type: 'text', required: false, gridSpan: 12 },
+  'cr648_startdate': { label: 'Start Date', type: 'date', required: false, gridSpan: 6 },
+  'cr648_ApprovedOn': { label: 'Approved On', type: 'date', required: false, gridSpan: 6 },
+  'cr648_sessiondateandtime': { label: 'Preferred Session Date/Time', type: 'datetime-local', required: false, gridSpan: 6 },
+  'cr648_volunteerstatus': { label: 'Volunteer Status', type: 'text', required: false, gridSpan: 6 },
+  'cr648_dataprotectionconsent': { label: 'Data Protection Consent', type: 'checkbox', required: false, gridSpan: 6 },
+  'cr648_photosconsent': { label: 'Photos Consent', type: 'checkbox', required: false, gridSpan: 6 },
 };
 
 
@@ -392,28 +396,34 @@ function ParticipantInfo() {
     const currentlyExpandedId = expandedParticipantId;
     const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
 
-    // If a row was expanded and it's different from the one being toggled (i.e., switching rows)
+    // If a row was expanded and it\'s different from the one being toggled (i.e., switching rows)
     if (currentlyExpandedId && currentlyExpandedId !== participantId) {
       const changes = {};
       for (const key in editFormData) {
-        if (editFormData[key] !== originalEditData[key]) {
+        // Ensure originalEditData is not null or undefined before accessing its properties
+        if (originalEditData && editFormData[key] !== originalEditData[key]) {
+          changes[key] = editFormData[key];
+        } else if (!originalEditData && editFormData[key] !== undefined) { // Handle case where originalEditData might be initially empty
           changes[key] = editFormData[key];
         }
       }
       if (Object.keys(changes).length > 0) {
         console.log('Saving changes for (switch):', currentlyExpandedId, changes);
-        await handleUpdateParticipant(currentlyExpandedId, changes); // Ensure this call is present and correct
+        await handleUpdateParticipant(currentlyExpandedId, changes);
       }
     } else if (currentlyExpandedId && newExpandedId === null) { // Closing the currently open row
         const changes = {};
         for (const key in editFormData) {
-            if (editFormData[key] !== originalEditData[key]) { 
+            // Ensure originalEditData is not null or undefined
+            if (originalEditData && editFormData[key] !== originalEditData[key]) { 
                 changes[key] = editFormData[key]; 
+            } else if (!originalEditData && editFormData[key] !== undefined) {
+                changes[key] = editFormData[key];
             }
         }
         if (Object.keys(changes).length > 0) {
             console.log('Saving changes for (close):', currentlyExpandedId, changes);
-            await handleUpdateParticipant(currentlyExpandedId, changes); // Ensure this call is present and correct
+            await handleUpdateParticipant(currentlyExpandedId, changes);
         }
     }
 
@@ -425,10 +435,18 @@ function ParticipantInfo() {
       if (participantToEdit) {
         const initialFormValues = {};
         Object.keys(participantToEdit).forEach(key => {
-            if (typeof participantToEdit[key] === 'string' && participantToEdit[key].match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)) {
-              initialFormValues[key] = formatDateForInput(participantToEdit[key]);
-            } else {
-              initialFormValues[key] = participantToEdit[key];
+            const fieldDefinition = creationFormFields[key];
+            const value = participantToEdit[key];
+
+            if (fieldDefinition?.type === 'datetime-local' && typeof value === 'string' && value.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z?$/)) {
+              initialFormValues[key] = value.substring(0, 16); // YYYY-MM-DDTHH:MM
+            } else if (fieldDefinition?.type === 'date' && typeof value === 'string' && value.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z?$/)) {
+              initialFormValues[key] = formatDateForInput(value); // YYYY-MM-DD
+            } else if (fieldDefinition?.type === 'checkbox'){
+              initialFormValues[key] = value === null || typeof value === 'undefined' ? false : Boolean(value);
+            }
+             else {
+              initialFormValues[key] = value;
             }
         });
         setEditFormData(initialFormValues);
@@ -635,42 +653,48 @@ function ParticipantInfo() {
                             Edit Participant Details
                           </Typography>
                           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                          <Box component="form" onSubmit={(e) => e.preventDefault()} sx={{ '& .MuiTextField-root': { m: 1, width: 'calc(50% - 16px)' } , display: 'flex', flexWrap: 'wrap'}}>
-                            {Object.keys(creationFormFields).map(fieldKey => {
-                              const field = creationFormFields[fieldKey];
-                              if (fieldKey === basicInfoFields.id) return null;
+                          <Box component="form" onSubmit={(e) => e.preventDefault()} sx={{ mt: 1 }}>
+                            <Grid container spacing={2}>
+                              {Object.keys(creationFormFields).map(fieldKey => {
+                                const field = creationFormFields[fieldKey];
+                                if (fieldKey === basicInfoFields.id) return null; // Don't show ID field
 
-                              if (field.type === 'checkbox') {
-                                return (
-                                  <FormControlLabel
-                                    key={fieldKey}
-                                    control={
-                                      <Checkbox
-                                        checked={editFormData[fieldKey] || false}
-                                        onChange={handleEditFormChange}
-                                        name={fieldKey}
+                                const gridSpan = field.gridSpan || 6; // Default to half-width if not specified
+
+                                if (field.type === 'checkbox') {
+                                  return (
+                                    <Grid item xs={12} sm={gridSpan} key={fieldKey}>
+                                      <FormControlLabel
+                                        control={
+                                          <Checkbox
+                                            checked={editFormData[fieldKey] || false}
+                                            onChange={handleEditFormChange}
+                                            name={fieldKey}
+                                          />
+                                        }
+                                        label={field.label + (field.required ? '*' : '')}
                                       />
-                                    }
-                                    label={field.label + (field.required ? '*' : '')}
-                                    sx={{width: 'calc(50% - 16px)', m:1}}
-                                  />
+                                    </Grid>
+                                  );
+                                }
+                                return (
+                                  <Grid item xs={12} sm={gridSpan} key={fieldKey}>
+                                    <TextField
+                                      label={field.label}
+                                      type={field.type}
+                                      name={fieldKey}
+                                      value={editFormData[fieldKey] === null || typeof editFormData[fieldKey] === 'undefined' ? '' : editFormData[fieldKey]}
+                                      onChange={handleEditFormChange}
+                                      required={field.required}
+                                      variant="outlined"
+                                      size="small"
+                                      fullWidth
+                                      InputLabelProps={(field.type === 'date' || field.type === 'datetime-local') ? { shrink: true } : {}}
+                                    />
+                                  </Grid>
                                 );
-                              }
-                              return (
-                                <TextField
-                                  key={fieldKey}
-                                  label={field.label}
-                                  type={field.type}
-                                  name={fieldKey}
-                                  value={editFormData[fieldKey] || ''}
-                                  onChange={handleEditFormChange}
-                                  required={field.required}
-                                  variant="outlined"
-                                  size="small"
-                                  InputLabelProps={field.type === 'date' ? { shrink: true } : {}}
-                                />
-                              );
-                            })}
+                              })}
+                            </Grid>
                           </Box>
                           {isUpdating && (
                             <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
@@ -695,39 +719,47 @@ function ParticipantInfo() {
         <DialogTitle>Add New Participant</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box component="form" id="createParticipantForm" onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }} sx={{ '& .MuiTextField-root': { my: 1 }, display: 'flex', flexDirection: 'column' }}>
-            {Object.keys(creationFormFields).map(fieldKey => {
-              const field = creationFormFields[fieldKey];
-              if (field.type === 'checkbox') {
-                return (
-                  <FormControlLabel
-                    key={fieldKey}
-                    control={
-                      <Checkbox
-                        checked={newParticipant[fieldKey] || false}
-                        onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.checked })}
-                        name={fieldKey}
+          <Box component="form" id="createParticipantForm" onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }} sx={{ mt: 1 }}>
+            <Grid container spacing={2}>
+              {Object.keys(creationFormFields).map(fieldKey => {
+                const field = creationFormFields[fieldKey];
+                if (fieldKey === basicInfoFields.id) return null; // Don't show ID field for creation
+
+                const gridSpan = field.gridSpan || 6; // Default to half-width
+
+                if (field.type === 'checkbox') {
+                  return (
+                    <Grid item xs={12} sm={gridSpan} key={fieldKey}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={newParticipant[fieldKey] || false}
+                            onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.checked })}
+                            name={fieldKey}
+                          />
+                        }
+                        label={field.label + (field.required ? '*' : '')}
                       />
-                    }
-                    label={field.label + (field.required ? '*' : '')}
-                  />
+                    </Grid>
+                  );
+                }
+                return (
+                  <Grid item xs={12} sm={gridSpan} key={fieldKey}>
+                    <TextField
+                      label={field.label}
+                      type={field.type}
+                      name={fieldKey}
+                      value={newParticipant[fieldKey] || ''}
+                      onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.value })}
+                      required={field.required}
+                      variant="outlined"
+                      fullWidth
+                      InputLabelProps={(field.type === 'date' || field.type === 'datetime-local') ? { shrink: true } : {}}
+                    />
+                  </Grid>
                 );
-              }
-              return (
-                <TextField
-                  key={fieldKey}
-                  label={field.label}
-                  type={field.type}
-                  name={fieldKey}
-                  value={newParticipant[fieldKey] || ''}
-                  onChange={(e) => setNewParticipant({ ...newParticipant, [fieldKey]: e.target.value })}
-                  required={field.required}
-                  variant="outlined"
-                  fullWidth
-                  InputLabelProps={field.type === 'date' ? { shrink: true } : {}}
-                />
-              );
-            })}
+              })}
+            </Grid>
           </Box>
         </DialogContent>
         <DialogActions>

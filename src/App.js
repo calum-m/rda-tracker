@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link as RouterLink, Navigate } from "react-router-dom";
 import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper } from '@mui/material';
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
-import LessonEvaluations from "./LessonEvaluations"; // Corrected import
+import CoachingSessionPlans from "./LessonEvaluations"; // Renamed import, path remains the same
 import ParticipantInfo from "./ParticipantInfo"; // Import the new component
 import LockOpenIcon from '@mui/icons-material/LockOpen'; // Added import
 
@@ -98,7 +98,7 @@ const App = () => {
                 {accounts.length > 0 && (
                   <>
                     <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
-                    <Button color="inherit" component={RouterLink} to="/lesson-evaluations">Lesson Evaluations</Button>
+                    <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button> {/* Renamed link text and path */}
                   </>
                 )}
               </Box>
@@ -114,7 +114,7 @@ const App = () => {
           {accounts.length > 0 && (
             <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'center', p: 1, bgcolor: 'primary.main' }}>
                  <Button sx={{color: 'white'}} component={RouterLink} to="/participant-info">Participant Info</Button>
-                 <Button sx={{color: 'white'}} component={RouterLink} to="/lesson-evaluations">Lesson Evaluations</Button>
+                 <Button sx={{color: 'white'}} component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button> {/* Renamed link text and path */}
             </Box>
           )}
 
@@ -123,7 +123,7 @@ const App = () => {
             <AuthenticatedTemplate>
               <Routes>
                 <Route path="/participant-info" element={<ParticipantInfo />} />
-                <Route path="/lesson-evaluations" element={<LessonEvaluations />} />
+                <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} /> {/* Renamed path and component */}
                 <Route path="/" element={<Navigate to="/participant-info" />} />
               </Routes>
             </AuthenticatedTemplate>
