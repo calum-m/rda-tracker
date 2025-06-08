@@ -127,20 +127,33 @@ const creationFormFields = {
   'cr648_addressline2': { label: 'Address Line 2', type: 'text', required: false, gridSpan: 12 },
   'cr648_addressline3': { label: 'Address Line 3', type: 'text', required: false, gridSpan: 12 },
   'cr648_postalcode': { label: 'Postal Code', type: 'text', required: false, gridSpan: 6 },
-  'cr648_guardianorparent': { label: 'Guardian/Parent Name', type: 'text', required: false, gridSpan: 6 }, // Assuming cr648_guardiansnorparent was a typo
+  'cr648_guardianorparent': { label: 'Guardian/Parent', type: 'select', required: false, gridSpan: 6, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
   'cr648_guardianphone': { label: 'Guardian Phone', type: 'tel', required: false, gridSpan: 6 },
   'cr648_heightincm': { label: 'Height (cm)', type: 'number', required: false, gridSpan: 6 },
   'cr648_heightinftandin': { label: 'Height (ft/in)', type: 'text', required: false, gridSpan: 6 },
   'cr648_weightinkg': { label: 'Weight (kg)', type: 'number', required: false, gridSpan: 6 },
   'cr648_weightinstones': { label: 'Weight (stones/lbs)', type: 'text', required: false, gridSpan: 6 },
-  'cr648_disabilitystatus': { label: 'Disability Status', type: 'text', required: false, gridSpan: 12 },
-  'cr648_epilepsystatus': { label: 'Epilepsy Status', type: 'text', required: false, gridSpan: 12 },
+  'cr648_disabilitystatus': { 
+    label: 'Disability Status', 
+    type: 'select', 
+    required: false, 
+    gridSpan: 12, 
+    options: [
+      {value: 791310000, label: 'A'}, 
+      {value: 791310001, label: 'B'},
+      {value: 791310002, label: 'C'},
+      {value: 791310003, label: 'D'},
+      {value: 791310004, label: 'E'},
+      {value: 791310005, label: 'Disability'}
+    ] 
+  },
+  'cr648_epilepsystatus': { label: 'Epilepsy Status', type: 'select', required: false, gridSpan: 12, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
   'cr648_startdate': { label: 'Start Date', type: 'date', required: false, gridSpan: 6 },
   'cr648_ApprovedOn': { label: 'Approved On', type: 'date', required: false, gridSpan: 6 },
   'cr648_sessiondateandtime': { label: 'Preferred Session Date/Time', type: 'datetime-local', required: false, gridSpan: 6 },
-  'cr648_volunteerstatus': { label: 'Volunteer Status', type: 'text', required: false, gridSpan: 6 },
-  'cr648_dataprotectionconsent': { label: 'Data Protection Consent', type: 'checkbox', required: false, gridSpan: 6 },
-  'cr648_photosconsent': { label: 'Photos Consent', type: 'checkbox', required: false, gridSpan: 6 },
+  'cr648_volunteerstatus': { label: 'Volunteer Status', type: 'select', required: false, gridSpan: 6, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
+  'cr648_dataprotectionconsent': { label: 'Data Protection Consent', type: 'select', required: false, gridSpan: 6, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
+  'cr648_photosconsent': { label: 'Photos Consent', type: 'select', required: false, gridSpan: 6, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
 };
 
 
@@ -331,14 +344,15 @@ function ParticipantInfo() {
       for (const key in payload) {
         const currentValue = payload[key];
         const originalValueFromState = originalEditData[key];
+        const fieldDef = creationFormFields[key]; // Get field definition
 
         if (currentValue === '') {
           // Prioritize creationFormFields for type info
-          if (creationFormFields[key]) {
-            if (creationFormFields[key].type === 'number') {
+          if (fieldDef) {
+            if (fieldDef.type === 'number') {
               payload[key] = null;
-            } else if (creationFormFields[key].type === 'checkbox') { // Assuming checkbox implies boolean
-              payload[key] = null; // Or false, depending on Dataverse nullable boolean handling
+            } else if (fieldDef.type === 'checkbox' || (fieldDef.type === 'select' && fieldDef.options?.some(opt => typeof opt.value === 'boolean'))) {
+              payload[key] = null; 
             }
             // For other types like 'text', 'email', 'tel', an empty string is often acceptable.
             // Date fields are handled by handleEditFormChange to be null if empty.
@@ -347,9 +361,18 @@ function ParticipantInfo() {
           else if (typeof originalValueFromState === 'number') {
             payload[key] = null;
           } else if (typeof originalValueFromState === 'boolean') {
-            payload[key] = null; // Or false
+            payload[key] = null; 
           }
           // If it's a string field and empty, payload[key] remains ''.
+        } else if (fieldDef?.type === 'select') {
+            const isBooleanSelect = fieldDef.options?.some(opt => typeof opt.value === 'boolean');
+            const isDisabilityStatusSelect = key === 'cr648_disabilitystatus';
+
+            if (isBooleanSelect && (currentValue === 'true' || currentValue === 'false')) {
+                payload[key] = (currentValue === 'true');
+            } else if (isDisabilityStatusSelect && currentValue !== null && currentValue !== '') {
+                payload[key] = parseInt(currentValue, 10);
+            }
         }
       }
       // Remove the ID field from the payload as it's part of the URL
@@ -496,15 +519,18 @@ function ParticipantInfo() {
 
       const payload = { ...newParticipant };
       for (const key in payload) {
+        const fieldDef = creationFormFields[key]; // Get field definition
         if (payload[key] === '') {
           // For empty strings, decide based on field type
-          if (creationFormFields[key]?.type === 'number') {
+          if (fieldDef?.type === 'number') {
             payload[key] = null;
-          } else if (creationFormFields[key]?.type === 'checkbox') {
+          } else if (fieldDef?.type === 'checkbox') { // This was for actual checkbox types, boolean selects are handled by their onChange or below
             payload[key] = false; // Or null, depending on desired default
           }
-          // Strings and other types can remain as empty strings if that's the desired value
+        } else if (fieldDef?.type === 'select' && key === 'cr648_disabilitystatus' && payload[key] !== null && payload[key] !== '') {
+            payload[key] = parseInt(payload[key], 10); // Convert to integer
         }
+        // Boolean values from select are already handled by the newParticipant state via its specific onChange
       }
 
       const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations`, {
@@ -676,6 +702,33 @@ function ParticipantInfo() {
                                     </Grid>
                                   );
                                 }
+                                if (field.type === 'select') {
+                                  return (
+                                    <Grid item xs={12} sm={gridSpan} key={fieldKey}>
+                                      <TextField
+                                        select
+                                        label={field.label}
+                                        name={fieldKey}
+                                        value={editFormData[fieldKey] === null || typeof editFormData[fieldKey] === 'undefined' ? '' : String(editFormData[fieldKey])} // Ensure value is string for select
+                                        onChange={handleEditFormChange}
+                                        required={field.required}
+                                        variant="outlined"
+                                        size="small"
+                                        fullWidth
+                                        SelectProps={{
+                                          native: true,
+                                        }}
+                                      >
+                                        <option value=""></option> {/* Default empty option */}
+                                        {field.options.map(option => (
+                                          <option key={String(option.value)} value={String(option.value)}>
+                                            {option.label}
+                                          </option>
+                                        ))}
+                                      </TextField>
+                                    </Grid>
+                                  );
+                                }
                                 return (
                                   <Grid item xs={12} sm={gridSpan} key={fieldKey}>
                                     <TextField
@@ -739,6 +792,40 @@ function ParticipantInfo() {
                         }
                         label={field.label + (field.required ? '*' : '')}
                       />
+                    </Grid>
+                  );
+                }
+                if (field.type === 'select') {
+                  return (
+                    <Grid item xs={12} sm={gridSpan} key={fieldKey}>
+                      <TextField
+                        select
+                        label={field.label}
+                        name={fieldKey}
+                        value={newParticipant[fieldKey] === null || typeof newParticipant[fieldKey] === 'undefined' ? '' : String(newParticipant[fieldKey])} // Ensure value is string for select
+                        onChange={(e) => {
+                            const fieldDefinition = creationFormFields[fieldKey];
+                            let val = e.target.value;
+                            if (fieldDefinition.options?.some(opt => typeof opt.value === 'boolean')) {
+                                if (val === 'true') val = true;
+                                else if (val === 'false') val = false;
+                            }
+                            setNewParticipant({ ...newParticipant, [fieldKey]: val });
+                        }}
+                        required={field.required}
+                        variant="outlined"
+                        fullWidth
+                        SelectProps={{
+                          native: true,
+                        }}
+                      >
+                        <option value=""></option> {/* Default empty option */}
+                        {field.options.map(option => (
+                          <option key={String(option.value)} value={String(option.value)}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </TextField>
                     </Grid>
                   );
                 }
