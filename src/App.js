@@ -151,6 +151,9 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                 textAlign: 'center',
               }}
             >
+              <Typography variant="caption" color="text.secondary" display="block">
+                Version 0.1.0
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 © {new Date().getFullYear()} RDA Tracker
               </Typography>
