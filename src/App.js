@@ -293,7 +293,17 @@ const AppWithEmotionCache = () => {
       <CacheProvider value={emotionCache}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <PrivacyPolicyPage />
+          <div id="privacy-policy-container-for-debug" style={{ padding: '20px', backgroundColor: 'lightyellow', minHeight: '100vh' }}>
+            <Typography variant="h5" component="h1" gutterBottom>
+              Privacy Policy Page Container (Debug)
+            </Typography>
+            <Typography variant="body1" paragraph>
+              If you are seeing this yellow container, the application has correctly routed to the privacy policy path in this new tab.
+              The actual content of the Privacy Policy page should be rendered below this message.
+            </Typography>
+            <hr />
+            <PrivacyPolicyPage />
+          </div>
         </ThemeProvider>
       </CacheProvider>
     );
