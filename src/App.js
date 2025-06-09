@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
-import { Route, Routes, Link as RouterLink } from 'react-router-dom';
+import { Route, Routes, Link as RouterLink, useLocation } from 'react-router-dom'; // Added useLocation
 import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper, IconButton, Menu, MenuItem } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { CacheProvider } from '@emotion/react';
@@ -43,6 +43,7 @@ const theme = createTheme({
 
 const AppWithEmotionCache = () => {
   const { instance, accounts, inProgress } = useMsal();
+  const location = useLocation(); // Initialize useLocation
   const [anchorEl, setAnchorEl] = useState(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [userConsent, setUserConsent] = useState({ given: false, version: null });
@@ -190,12 +191,14 @@ const AppWithEmotionCache = () => {
     }
   }, [account, dataverseBaseUrl, acquireDataverseToken]);
 
+  const latestPolicyVersion = "1.1 - 2025-06-10"; // Ensure this is the single source of truth
+
   useEffect(() => {
     const checkConsent = async () => {
       if (account && inProgress === InteractionStatus.None) {
         setIsConsentLoading(true);
         const consentedVersion = await fetchConsentFromDataverse();
-        const latestPolicyVersion = "1.0 - 2025-06-09";
+        // const latestPolicyVersion = "1.1 - 2025-06-10"; // Commented out: Defined above useEffect
         if (consentedVersion && consentedVersion === latestPolicyVersion) {
           setUserConsent({ given: true, version: consentedVersion });
           setShowConsentModal(false);
@@ -249,13 +252,14 @@ const AppWithEmotionCache = () => {
         alert("Failed to save your consent. Please try again or contact support.");
       }
     }
-  }, [account, saveConsentToDataverse]);
+  }, [account, saveConsentToDataverse, setUserConsent, setShowConsentModal]); // Added setUserConsent and setShowConsentModal to dependencies
   
   const handleDisagreeToConsent = useCallback(() => {
-    setShowConsentModal(false);
-    alert("You have not agreed to the data protection policy. You will be logged out or have restricted access.");
-    handleLogout();
-  }, [handleLogout]);
+    setUserConsent({ given: false, version: null }); // Explicitly set consent state to not given
+    setShowConsentModal(true); // Ensure the modal remains visible
+    alert("You have not agreed to the data protection policy. Access to features requiring data access will be restricted until consent is provided. You can agree by interacting with the modal.");
+    // handleLogout(); // Logout call removed
+  }, [setUserConsent, setShowConsentModal]); // Dependencies updated
 
   const UnauthenticatedView = () => {
     return (
@@ -301,7 +305,7 @@ const AppWithEmotionCache = () => {
     );
   };
   
-  if (inProgress !== InteractionStatus.None || isConsentLoading) {
+  if (inProgress !== InteractionStatus.None || (isConsentLoading && location.pathname !== '/privacy-policy')) { // Modified loading condition
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -312,129 +316,144 @@ const AppWithEmotionCache = () => {
     );
   }
 
+  // Directly render PrivacyPolicyPage if the path is /privacy-policy
+  if (location.pathname === '/privacy-policy') {
+    return (
+      <CacheProvider value={emotionCache}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <PrivacyPolicyPage />
+        </ThemeProvider>
+      </CacheProvider>
+    );
+  }
+
   return (
     <CacheProvider value={emotionCache}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {showConsentModal && account && (
+        {showConsentModal && (
           <ConsentModal
             open={showConsentModal}
             onAgree={handleAgreeToConsent}
             onDisagree={handleDisagreeToConsent}
             userName={userName}
+            latestPolicyVersion={latestPolicyVersion} // Pass latestPolicyVersion to ConsentModal
           />
         )}
-        {(!account || (userConsent.given && !showConsentModal)) && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-              <AppBar position="static">
-                <Toolbar>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <img src={process.env.PUBLIC_URL + '/RDALOGO.svg'} alt="RDA Tracker Logo" style={{ height: '40px', marginRight: '10px' }} />
-                  </Box>
-                  <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                    {accounts.length > 0 && (
-                      <>
-                        <Button color="inherit" component={RouterLink} to="/">Home</Button>
-                        <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
-                        <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
-                        <Button color="inherit" component={RouterLink} to="/help">Help</Button>
-                        <Button color="inherit" onClick={handleLogout}>Logout ({userName})</Button>
-                      </>
-                    )}
-                  </Box>
-                  <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
-                    {accounts.length > 0 && (
-                      <IconButton
-                        size="large"
-                        edge="end"
-                        color="inherit"
-                        aria-label="menu"
-                        onClick={handleMobileMenuOpen}
-                      >
-                        <MenuIcon />
-                      </IconButton>
-                    )}
-                  </Box>
-                </Toolbar>
-              </AppBar>
-              {accounts.length > 0 && (
-                <Menu
-                  anchorEl={anchorEl}
-                  open={Boolean(anchorEl)}
-                  onClose={handleMobileMenuClose}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  sx={{ mt: '45px' }} 
-                >
-                  <MenuItem component={RouterLink} to="/" onClick={handleMobileMenuClose}>Home</MenuItem>
-                  <MenuItem component={RouterLink} to="/participant-info" onClick={handleMobileMenuClose}>Participant Info</MenuItem>
-                  <MenuItem component={RouterLink} to="/coaching-session-plans" onClick={handleMobileMenuClose}>Coaching Session Plans</MenuItem>
-                  <MenuItem component={RouterLink} to="/help" onClick={handleMobileMenuClose}>Help</MenuItem>
-                  <MenuItem onClick={() => { handleMobileMenuClose(); handleLogout(); }}>Logout ({userName})</MenuItem>
-                </Menu>
-              )}
-              <Container component="main" sx={{ flexGrow: 1, py: 3, px: { xs: 2, sm: 3 } }}>
-                <AuthenticatedTemplate>
-                  {accounts.length > 0 && (
-                    <Routes>
-                      <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} />
-                      <Route path="/participant-info" element={<ParticipantInfo />} />
-                      <Route path="/help" element={<HelpPage />} />
-                      <Route path="/" element={<LandingPage />} />
-                      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-                    </Routes>
-                  )}
-                </AuthenticatedTemplate>
-                <UnauthenticatedTemplate>
-                  <Routes>
-                    <Route path="/logged-out" element={<LoggedOutPage />} />
-                    <Route path="/*" element={<UnauthenticatedView />} />
-                  </Routes>
-                </UnauthenticatedTemplate>
-              </Container>
-              <Box
-                component="footer"
-                sx={{
-                  py: 2,
-                  px: 2,
-                  mt: 'auto',
-                  backgroundColor: (thm) =>
-                    thm.palette.mode === 'light' ? thm.palette.grey[200] : thm.palette.grey[800],
-                  textAlign: 'center',
-                }}
-              >
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Version 0.1.0
-                </Typography>
-                {account && (
-                  <Typography variant="body2" color="text.secondary" component="span" sx={{ mr: 0.5 }}>
-                    <RouterLink to="/privacy-policy" style={{ color: 'inherit', textDecoration: 'none' }}>
-                      Privacy Policy
-                    </RouterLink>
-                    {' | '}
-                  </Typography>
+        <Box sx={{ flexGrow: 1 }}>
+          {(!account || (userConsent.given && !showConsentModal)) && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                <AppBar position="static">
+                  <Toolbar>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <img src={process.env.PUBLIC_URL + '/RDALOGO.svg'} alt="RDA Tracker Logo" style={{ height: '40px', marginRight: '10px' }} />
+                    </Box>
+                    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                      {accounts.length > 0 && (
+                        <>
+                          <Button color="inherit" component={RouterLink} to="/">Home</Button>
+                          <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
+                          <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
+                          <Button color="inherit" component={RouterLink} to="/help">Help</Button>
+                          <Button color="inherit" onClick={handleLogout}>Logout ({userName})</Button>
+                        </>
+                      )}
+                    </Box>
+                    <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
+                      {accounts.length > 0 && (
+                        <IconButton
+                          size="large"
+                          edge="end"
+                          color="inherit"
+                          aria-label="menu"
+                          onClick={handleMobileMenuOpen}
+                        >
+                          <MenuIcon />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </Toolbar>
+                </AppBar>
+                {accounts.length > 0 && (
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleMobileMenuClose}
+                    anchorOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    sx={{ mt: '45px' }} 
+                  >
+                    <MenuItem component={RouterLink} to="/" onClick={handleMobileMenuClose}>Home</MenuItem>
+                    <MenuItem component={RouterLink} to="/participant-info" onClick={handleMobileMenuClose}>Participant Info</MenuItem>
+                    <MenuItem component={RouterLink} to="/coaching-session-plans" onClick={handleMobileMenuClose}>Coaching Session Plans</MenuItem>
+                    <MenuItem component={RouterLink} to="/help" onClick={handleMobileMenuClose}>Help</MenuItem>
+                    <MenuItem onClick={() => { handleMobileMenuClose(); handleLogout(); }}>Logout ({userName})</MenuItem>
+                  </Menu>
                 )}
-                <Typography variant="body2" color="text.secondary" component="span">
-                  © {new Date().getFullYear()} RDA Tracker
-                </Typography>
+                <Container component="main" sx={{ flexGrow: 1, py: 3, px: { xs: 2, sm: 3 } }}>
+                  <AuthenticatedTemplate>
+                    {accounts.length > 0 && (
+                      <Routes>
+                        <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} />
+                        <Route path="/participant-info" element={<ParticipantInfo />} />
+                        <Route path="/help" element={<HelpPage />} />
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                      </Routes>
+                    )}
+                  </AuthenticatedTemplate>
+                  <UnauthenticatedTemplate>
+                    <Routes>
+                      <Route path="/logged-out" element={<LoggedOutPage />} />
+                      <Route path="/*" element={<UnauthenticatedView />} />
+                    </Routes>
+                  </UnauthenticatedTemplate>
+                </Container>
+                <Box
+                  component="footer"
+                  sx={{
+                    py: 2,
+                    px: 2,
+                    mt: 'auto',
+                    backgroundColor: (thm) =>
+                      thm.palette.mode === 'light' ? thm.palette.grey[200] : thm.palette.grey[800],
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Version 0.1.0
+                  </Typography>
+                  {account && (
+                    <Typography variant="body2" color="text.secondary" component="span" sx={{ mr: 0.5 }}>
+                      <RouterLink to="/privacy-policy" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        Privacy Policy
+                      </RouterLink>
+                      {' | '}
+                    </Typography>
+                  )}
+                  <Typography variant="body2" color="text.secondary" component="span">
+                    © {new Date().getFullYear()} RDA Tracker
+                  </Typography>
+                </Box>
               </Box>
+          )}
+          {account && !userConsent.given && !showConsentModal && (
+             <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 128px)', textAlign: 'center', p:3 }}>
+              <Typography variant="h5" gutterBottom>Consent Required</Typography>
+              <Typography variant="body1" sx={{mb:2}}>\
+                You must agree to the Data Protection Policy to use this application.\
+              </Typography>
+              <Button variant="contained" onClick={() => setShowConsentModal(true)}>Review Policy</Button>
             </Box>
-        )}
-        {account && !userConsent.given && !showConsentModal && (
-           <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 128px)', textAlign: 'center', p:3 }}>
-            <Typography variant="h5" gutterBottom>Consent Required</Typography>
-            <Typography variant="body1" sx={{mb:2}}>\
-              You must agree to the Data Protection Policy to use this application.\
-            </Typography>
-            <Button variant="contained" onClick={() => setShowConsentModal(true)}>Review Policy</Button>
-          </Box>
-        )}
+          )}
+        </Box>
       </ThemeProvider>
     </CacheProvider>
   );

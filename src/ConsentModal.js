@@ -1,6 +1,7 @@
 // filepath: /home/calum/rda-tracker/rda-tracker/src/ConsentModal.js
 import React from 'react';
-import { Modal, Box, Typography, Button, Paper, Checkbox, FormControlLabel, Link } from '@mui/material';
+import { Modal, Box, Typography, Button, Paper, Checkbox, FormControlLabel, Link as MuiLink } from '@mui/material'; // Renamed Link to MuiLink to avoid conflict
+import { Link as RouterLink } from 'react-router-dom'; // Import React Router Link
 
 const style = {
   position: 'absolute',
@@ -17,15 +18,14 @@ const style = {
   flexDirection: 'column',
 };
 
-const CONSENT_POLICY_VERSION = "1.0 - 2025-06-09"; // Update as your policy changes
-const PRIVACY_POLICY_URL = "/privacy-policy"; // New React Router link
+const PRIVACY_POLICY_URL = "/privacy-policy";
 
-const ConsentModal = ({ open, onAgree, onDisagree, userName }) => {
+const ConsentModal = ({ open, onAgree, onDisagree, userName, latestPolicyVersion }) => {
   const [agreedToPolicy, setAgreedToPolicy] = React.useState(false);
 
   const handleAgree = () => {
     if (agreedToPolicy) {
-      onAgree(CONSENT_POLICY_VERSION);
+      onAgree(latestPolicyVersion);
     } else {
       alert("Please acknowledge the data protection policy by checking the box.");
     }
@@ -41,8 +41,8 @@ const ConsentModal = ({ open, onAgree, onDisagree, userName }) => {
         <Typography id="consent-modal-title" variant="h6" component="h2" gutterBottom>
           Data Protection and Usage Consent
         </Typography>
-        <Box sx={{ mb: 2, maxHeight: '300px', overflowY: 'auto' }}> {/* Wrap content in a Box */}
-          <Typography id="consent-modal-description" variant="body1" component="div"> {/* Change component to div */}
+        <Box sx={{ mb: 2, maxHeight: '300px', overflowY: 'auto' }}>
+          <Typography id="consent-modal-description" variant="body1" component="div">
             Welcome, {userName || 'User'}!
             <br /><br />
             To use this application, which involves accessing and managing information related to coaching sessions and participants (client data), you must agree to our data protection policy.
@@ -56,8 +56,8 @@ const ConsentModal = ({ open, onAgree, onDisagree, userName }) => {
             <li>Data is stored securely within the Microsoft Dataverse environment, adhering to Microsoft's security standards.</li>
             <li>You are responsible for ensuring that any data you input or manage complies with relevant data protection regulations and organizational policies.</li>
           </ul>
-          <Typography variant="body1" component="div" sx={{ mt: 2 }}> {/* Change component to div */}
-            By clicking "Agree", you confirm that you have read, understood, and agree to the terms outlined here and in our full <Link href={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer">Data Protection Policy</Link> (Version: {CONSENT_POLICY_VERSION}). This consent is specific to your use of this application for managing RDA session data.
+          <Typography variant="body1" component="div" sx={{ mt: 2 }}>
+            By clicking "Agree", you confirm that you have read, understood, and agree to the terms outlined here and in our full <MuiLink component={RouterLink} to={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer">Data Protection Policy</MuiLink> (Version: {latestPolicyVersion}). This consent is specific to your use of this application for managing RDA session data.
             <br /><br />
             If you do not agree, you will not be able to proceed to use the application features that involve client data.
           </Typography>
