@@ -43,7 +43,7 @@ const theme = createTheme({
 
 const AppWithEmotionCache = () => {
   const { instance, accounts, inProgress } = useMsal();
-  const location = useLocation(); // Initialize useLocation
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [userConsent, setUserConsent] = useState({ given: false, version: null });
@@ -305,24 +305,27 @@ const AppWithEmotionCache = () => {
     );
   };
   
-  if (inProgress !== InteractionStatus.None || (isConsentLoading && location.pathname !== '/privacy-policy')) { // Modified loading condition
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Typography>Loading, please wait...</Typography>
-        </Box>
-      </ThemeProvider>
-    );
-  }
-
-  // Directly render PrivacyPolicyPage if the path is /privacy-policy
+  // PRIORITY 1: If it's the privacy policy page, render it directly.
   if (location.pathname === '/privacy-policy') {
     return (
       <CacheProvider value={emotionCache}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <PrivacyPolicyPage />
+        </ThemeProvider>
+      </CacheProvider>
+    );
+  }
+
+  // PRIORITY 2: If MSAL is busy or consent is loading (for other pages), show loading screen.
+  if (inProgress !== InteractionStatus.None || isConsentLoading) {
+    return (
+      <CacheProvider value={emotionCache}> {/* Added CacheProvider */}
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <Typography>Loading, please wait...</Typography>
+          </Box>
         </ThemeProvider>
       </CacheProvider>
     );
