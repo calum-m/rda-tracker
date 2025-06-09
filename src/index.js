@@ -5,6 +5,7 @@ import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
 import './index.css'; // Corrected import: Ensure this points to your global CSS file for MUI
+import { BrowserRouter as Router } from 'react-router-dom'; // Import Router
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
@@ -15,7 +16,9 @@ msalInstance.initialize().then(() => {
     root.render(
       <React.StrictMode>
         <MsalProvider instance={msalInstance}>
-          <AppWithEmotionCache /> {/* Use AppWithEmotionCache */}
+          <Router> {/* Add Router here */}
+            <AppWithEmotionCache /> {/* Use AppWithEmotionCache */}
+          </Router>
         </MsalProvider>
       </React.StrictMode>
     );
