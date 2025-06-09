@@ -12,6 +12,7 @@ import LandingPage from "./LandingPage";
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import createCache from '@emotion/cache';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
+import LoggedOutPage from './LoggedOutPage';
 import { InteractionStatus } from "@azure/msal-browser";
 
 const nonce = 'mui-csp-nonce-12345';
@@ -391,7 +392,10 @@ const AppWithEmotionCache = () => {
                   )}
                 </AuthenticatedTemplate>
                 <UnauthenticatedTemplate>
-                  <UnauthenticatedView />
+                  <Routes>
+                    <Route path="/logged-out" element={<LoggedOutPage />} />
+                    <Route path="/*" element={<UnauthenticatedView />} />
+                  </Routes>
                 </UnauthenticatedTemplate>
               </Container>
               <Box
