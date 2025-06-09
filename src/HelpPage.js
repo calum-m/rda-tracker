@@ -120,6 +120,74 @@ function HelpPage() {
             </ListItem>
           </List>
         </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box sx={{ my: 2 }}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Installing as a Progressive Web App (PWA)
+          </Typography>
+          <Typography variant="body1" paragraph>
+            You can install the RDA Tracker as an app on your desktop or mobile device for easier access.
+          </Typography>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 2 }}>
+            On Desktop (Chrome, Edge)
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText primary="1. Open RDA Tracker in your Chrome or Edge browser." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="2. Look for an install icon in the address bar (often a computer screen with a downward arrow, or three vertical dots for the menu)." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="3. Click the icon or menu option and select 'Install RDA Tracker' or 'Add to Home screen'." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="4. Follow the on-screen prompts to complete the installation." />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 2 }}>
+            On Android (Chrome)
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText primary="1. Open RDA Tracker in the Chrome browser on your Android device." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="2. Tap the three vertical dots (menu icon) in the top-right corner." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="3. Tap 'Install app' or 'Add to Home screen'." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="4. Follow the on-screen prompts." />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 2 }}>
+            On iOS (Safari)
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText primary="1. Open RDA Tracker in the Safari browser on your iPhone or iPad." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="2. Tap the 'Share' button (an icon with an upward arrow coming out of a square) at the bottom of the screen." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="3. Scroll down in the share menu and tap 'Add to Home Screen'." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="4. Confirm the name for the app icon and tap 'Add' in the top-right corner." />
+            </ListItem>
+          </List>
+          <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+            Note: The exact wording and icon appearance may vary slightly depending on your browser version and operating system.
+          </Typography>
+        </Box>
         
         <Divider sx={{ my: 2 }} />
 
