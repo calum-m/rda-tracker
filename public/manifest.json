@@ -1,6 +1,7 @@
 {
   "short_name": "RDA Tracker",
   "name": "RDA Tracker",
+  "description": "RDA Session Tracking Application",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +11,37 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#57ab5d",
+  "background_color": "#ffffff",
+  "scope": "/",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Participant Info",
+      "short_name": "Participants",
+      "description": "View and manage participant information",
+      "url": "/participant-info",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Coaching Session Plans",
+      "short_name": "Sessions",
+      "description": "Access coaching session plans",
+      "url": "/coaching-session-plans",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    }
+  ]
 }
