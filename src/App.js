@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
-import { Route, Routes, Link as RouterLink, useLocation } from 'react-router-dom'; // Added useLocation
-import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper, IconButton, Menu, MenuItem } from '@mui/material';
+import { Route, Routes, Link as RouterLink, useLocation } from 'react-router-dom';
+import { AppBar, Toolbar, Button, Typography, Container, Box, ThemeProvider, CssBaseline, Paper, IconButton, Menu, MenuItem } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { CacheProvider } from '@emotion/react';
 import ConsentModal from "./ConsentModal";
@@ -10,17 +10,10 @@ import ParticipantInfo from "./ParticipantInfo";
 import HelpPage from "./HelpPage";
 import LandingPage from "./LandingPage";
 import LockOpenIcon from '@mui/icons-material/LockOpen';
-import createCache from '@emotion/cache';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import LoggedOutPage from './LoggedOutPage';
 import { InteractionStatus } from "@azure/msal-browser";
-
-const nonce = 'mui-csp-nonce-12345';
-
-const emotionCache = createCache({
-  key: 'css',
-  nonce: nonce,
-});
+import { theme, emotionCache } from './theme'; // Import theme and emotionCache
 
 const loginRequest = {
   scopes: ["openid", "profile", "User.Read"],
@@ -29,17 +22,6 @@ const loginRequest = {
 const dataverseRequest = {
   scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || ""].filter(scope => scope),
 };
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#57ab5d',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
 
 const AppWithEmotionCache = () => {
   const { instance, accounts, inProgress } = useMsal();
@@ -320,7 +302,7 @@ const AppWithEmotionCache = () => {
   // PRIORITY 2: If MSAL is busy or consent is loading (for other pages), show loading screen.
   if (inProgress !== InteractionStatus.None || isConsentLoading) {
     return (
-      <CacheProvider value={emotionCache}> {/* Added CacheProvider */}
+      <CacheProvider value={emotionCache}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
