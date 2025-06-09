@@ -1,88 +1,76 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
-import { PublicClientApplication } from "@azure/msal-browser";
-import { BrowserRouter as Router, Route, Routes, Link as RouterLink, useNavigate } from 'react-router-dom';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3'
+import React, { useState, useEffect, useCallback } from "react";
+import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
+import { Route, Routes, Link as RouterLink } from 'react-router-dom';
 import { AppBar, Toolbar, Button, Typography, Container, Box, createTheme, ThemeProvider, CssBaseline, Paper, IconButton, Menu, MenuItem } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu'; // Import MenuIcon
-import { CacheProvider } from '@emotion/react'; // Import CacheProvider from @emotion/react
-import DataverseCaller from "./DataverseCaller";
+import MenuIcon from '@mui/icons-material/Menu';
+import { CacheProvider } from '@emotion/react';
 import ConsentModal from "./ConsentModal";
-import CoachingSessionPlans from "./LessonEvaluations"; // Renamed import, path remains the same
-import ParticipantInfo from "./ParticipantInfo"; // Import the new component
-import HelpPage from "./HelpPage"; // Import the HelpPage component
-import LandingPage from "./LandingPage"; // Import the LandingPage component
-import LockOpenIcon from '@mui/icons-material/LockOpen'; // Added import
-import createCache from '@emotion/cache'; // Import createCache
-import PrivacyPolicyPage from './PrivacyPolicyPage'; // Import the PrivacyPolicyPage component
-import { InteractionStatus } from "@azure/msal-browser"; // Import InteractionStatus
+import CoachingSessionPlans from "./LessonEvaluations";
+import ParticipantInfo from "./ParticipantInfo";
+import HelpPage from "./HelpPage";
+import LandingPage from "./LandingPage";
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import createCache from '@emotion/cache';
+import PrivacyPolicyPage from './PrivacyPolicyPage';
+import { InteractionStatus } from "@azure/msal-browser";
 
-const nonce = 'mui-csp-nonce-12345'; // Define a nonce
+const nonce = 'mui-csp-nonce-12345';
 
-// Create an Emotion cache with the nonce
-const emotionCache = createCache({ // Renamed cache to emotionCache to avoid conflict
+const emotionCache = createCache({
   key: 'css',
   nonce: nonce,
 });
 
-const loginRequest = { // Moved loginRequest to a higher scope
-  scopes: ["openid", "profile", "User.Read"], // Standard MSAL scopes for login
+const loginRequest = {
+  scopes: ["openid", "profile", "User.Read"],
 };
 
-const dataverseRequest = { // Define dataverseRequest for token acquisition
-  scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || ""].filter(scope => scope), // Ensure it's an array and filter out empty strings
+const dataverseRequest = {
+  scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || ""].filter(scope => scope),
 };
 
-// Create a default MUI theme - THIS THEME IS USED
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#57ab5d', // Example: MUI blue
+      main: '#57ab5d',
     },
     secondary: {
-      main: '#dc004e', // Example: MUI pink
+      main: '#dc004e',
     },
   },
 });
 
-
-const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
-  const { instance, accounts, inProgress } = useMsal(); // Added inProgress
-  const [anchorEl, setAnchorEl] = useState(null); // State for mobile menu
+const AppWithEmotionCache = () => {
+  const { instance, accounts, inProgress } = useMsal();
+  const [anchorEl, setAnchorEl] = useState(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [userConsent, setUserConsent] = useState({ given: false, version: null });
   const [isConsentLoading, setIsConsentLoading] = useState(true);
   const account = accounts[0];
   const userName = account?.name || account?.username;
   const dataverseBaseUrl = process.env.REACT_APP_DATAVERSE_URL;
-  const navigate = useNavigate(); // Added useNavigate hook
 
   console.log("Accounts:", accounts);
 
-  // Helper function to acquire Dataverse token
-  const acquireDataverseToken = async () => {
+  const acquireDataverseToken = useCallback(async () => {
     if (!account) return null;
-    console.log("Attempting to acquire Dataverse token with request:", dataverseRequest); // Log the request
+    console.log("Attempting to acquire Dataverse token with request:", dataverseRequest);
     try {
       const tokenResponse = await instance.acquireTokenSilent({
         ...dataverseRequest,
         account: account,
       });
-      console.log("Dataverse token acquired successfully."); // Log success
-      // console.log("Token:", tokenResponse.accessToken); // Avoid logging the full token in production
+      console.log("Dataverse token acquired successfully.");
       return tokenResponse.accessToken;
     } catch (error) {
       console.error("Dataverse token acquisition error:", error);
       if (error.name === "InteractionRequiredAuthError" || error.name === "BrowserAuthError") {
-        // Fallback to interactive method if silent fails
         try {
           const tokenResponse = await instance.acquireTokenRedirect({
              ...dataverseRequest,
-             account: account, // ensure account is passed for redirect as well
+             account: account,
           });
-          console.log("Dataverse token acquired via redirect successfully."); // Log success via redirect
-          // console.log("Token via redirect:", tokenResponse.accessToken); // Avoid logging full token
+          console.log("Dataverse token acquired via redirect successfully.");
           return tokenResponse.accessToken;
         } catch (redirectError) {
           console.error("Dataverse token acquisition redirect error:", redirectError);
@@ -91,20 +79,16 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
       }
       return null;
     }
-  };
+  }, [account, instance]);
 
-  // Fetch consent from Dataverse
-  const fetchConsentFromDataverse = async () => {
+  const fetchConsentFromDataverse = useCallback(async () => {
     if (!account || !dataverseBaseUrl) return null;
     const token = await acquireDataverseToken();
     if (!token) {
       console.error("Fetch consent: No token acquired for Dataverse.");
       return null;
     }
-
     try {
-      // IMPORTANT: Replace 'new_userconsents', 'new_userid', 'new_policyversion'
-      // with your actual Dataverse entity and field logical names.
       const response = await fetch(
         `${dataverseBaseUrl}/api/data/v9.2/cr648_table1s?$filter=cr648_new_userid eq '${account.homeAccountId}'&$select=cr648_new_policyversion&$top=1`,
         {
@@ -124,29 +108,23 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
       }
       const data = await response.json();
       if (data.value && data.value.length > 0) {
-        return data.value[0].cr648_new_policyversion; // Assuming this field stores the consented version
+        return data.value[0].cr648_new_policyversion;
       }
       return null;
     } catch (error) {
       console.error("Error fetching consent from Dataverse:", error);
       return null;
     }
-  };
+  }, [account, dataverseBaseUrl, acquireDataverseToken]);
 
-  // Save consent to Dataverse
-  const saveConsentToDataverse = async (policyVersion) => {
+  const saveConsentToDataverse = useCallback(async (policyVersion) => {
     if (!account || !dataverseBaseUrl) return false;
     const token = await acquireDataverseToken();
     if (!token) {
       console.error("Save consent: No token acquired for Dataverse.");
       return false;
     }
-
     try {
-      // IMPORTANT: Replace 'new_userconsents', 'new_userid', 'new_userconsentid', 
-      // 'new_policyversion', 'new_consenttimestamp' with your actual Dataverse entity and field logical names.
-
-      // Check if a consent record already exists for this user
       const getResponse = await fetch(
         `${dataverseBaseUrl}/api/data/v9.2/cr648_table1s?$filter=cr648_new_userid eq '${account.homeAccountId}'&$select=cr648_new_userconsentid`,
         {
@@ -160,60 +138,44 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
           },
         }
       );
-
       let consentRecordId = null;
       if (getResponse.ok) {
         const getData = await getResponse.json();
         if (getData.value && getData.value.length > 0) {
-          consentRecordId = getData.value[0].cr648_new_userconsentid; // Assuming 'cr648_new_userconsentid' is the primary key
+          consentRecordId = getData.value[0].cr648_new_userconsentid;
         }
       } else {
         console.error("Failed to check existing consent:", getResponse.statusText);
-        // Proceed to create if check fails, or handle error more gracefully
       }
-
       const consentData = {
         cr648_new_policyversion: policyVersion,
         cr648_new_consenttimestamp: new Date().toISOString(),
       };
-
       let response;
       if (consentRecordId) {
-        // Update existing record
         response = await fetch(
           `${dataverseBaseUrl}/api/data/v9.2/cr648_table1s(${consentRecordId})`,
           {
             method: "PATCH",
             headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "OData-MaxVersion": "4.0",
-              "OData-Version": "4.0",
-              Accept: "application/json",
+              Authorization: `Bearer ${token}`, "Content-Type": "application/json", "OData-MaxVersion": "4.0", "OData-Version": "4.0", Accept: "application/json",
             },
             body: JSON.stringify(consentData),
           }
         );
       } else {
-        // Create new record
-        // Add the user identifier only when creating a new record
         const createData = { ...consentData, "cr648_new_userid": account.homeAccountId };
         response = await fetch(
           `${dataverseBaseUrl}/api/data/v9.2/cr648_table1s`,
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "OData-MaxVersion": "4.0",
-              "OData-Version": "4.0",
-              Accept: "application/json",
+              Authorization: `Bearer ${token}`, "Content-Type": "application/json", "OData-MaxVersion": "4.0", "OData-Version": "4.0", Accept: "application/json",
             },
             body: JSON.stringify(createData),
           }
         );
       }
-
       if (!response.ok) {
         const errorBody = await response.text();
         console.error("Failed to save consent to Dataverse. Status:", response.status, "Text:", response.statusText, "Body:", errorBody);
@@ -225,42 +187,35 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
       console.error("Error saving consent to Dataverse:", error);
       return false;
     }
-  };
-
+  }, [account, dataverseBaseUrl, acquireDataverseToken]);
 
   useEffect(() => {
     const checkConsent = async () => {
       if (account && inProgress === InteractionStatus.None) {
         setIsConsentLoading(true);
-        // Fetch consent from Dataverse
         const consentedVersion = await fetchConsentFromDataverse();
-        const latestPolicyVersion = "1.0 - 2025-06-09"; // Must match ConsentModal.js
-
+        const latestPolicyVersion = "1.0 - 2025-06-09";
         if (consentedVersion && consentedVersion === latestPolicyVersion) {
           setUserConsent({ given: true, version: consentedVersion });
           setShowConsentModal(false);
         } else {
-          // If no consent in Dataverse, or consent is for an outdated policy
           setUserConsent({ given: false, version: null });
           setShowConsentModal(true);
         }
         setIsConsentLoading(false);
       } else if (!account && inProgress === InteractionStatus.None) {
-        // No user logged in, reset consent state
         setShowConsentModal(false);
         setUserConsent({ given: false, version: null });
         setIsConsentLoading(false);
       }
     };
-
-    if (dataverseBaseUrl) { // Only run if Dataverse URL is configured
+    if (dataverseBaseUrl) {
       checkConsent();
     } else {
       console.warn("REACT_APP_DATAVERSE_URL is not set. Consent check via Dataverse is skipped.");
-      setIsConsentLoading(false); // Stop loading if no URL
-      // Fallback or error message if Dataverse URL is critical
+      setIsConsentLoading(false);
     }
-  }, [account, inProgress, dataverseBaseUrl, instance]); // Added instance and dataverseBaseUrl to dependency array
+  }, [account, inProgress, dataverseBaseUrl, instance, fetchConsentFromDataverse]);
 
   const handleMobileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -270,66 +225,58 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
     setAnchorEl(null);
   };
 
-  const handleLogin = () => {
-    instance.loginRedirect(loginRequest).catch(e => { // Use loginRequest which has general scopes
+  const handleLogin = useCallback(() => {
+    instance.loginRedirect(loginRequest).catch(e => {
       console.error("Login redirect error:", e);
-      // Potentially clear consent state on login error if needed
-      // localStorage.removeItem(`consent_${account?.homeAccountId}`); // Keep this commented or remove
       setUserConsent({ given: false, version: null });
     });
-  };
+  }, [instance]);
 
-  const handleLogout = () => {
-    // Optionally clear consent from localStorage on logout if desired
-    // localStorage.removeItem(`consent_${account?.homeAccountId}`);
+  const handleLogout = useCallback(() => {
     instance.logoutRedirect().catch(e => {
       console.error("Logout redirect error:", e);
     });
-  };
+  }, [instance]);
 
-  const handleAgreeToConsent = async (policyVersion) => {
+  const handleAgreeToConsent = useCallback(async (policyVersion) => {
     if (account) {
-      // Save consent to Dataverse
       const success = await saveConsentToDataverse(policyVersion);
       if (success) {
         setUserConsent({ given: true, version: policyVersion });
         setShowConsentModal(false);
       } else {
-        // Handle failure to save consent, e.g., show an error message
         alert("Failed to save your consent. Please try again or contact support.");
       }
     }
-  };
-
-  const handleDisagreeToConsent = () => {
-    // User disagreed, log them out or restrict access
+  }, [account, saveConsentToDataverse]);
+  
+  const handleDisagreeToConsent = useCallback(() => {
     setShowConsentModal(false);
     alert("You have not agreed to the data protection policy. You will be logged out or have restricted access.");
-    handleLogout(); // Example: log out user
-  };
-
+    handleLogout();
+  }, [handleLogout]);
 
   const UnauthenticatedView = () => {
     return (
       <Container
-        maxWidth="xs" // Constrain width for the login box
+        maxWidth="xs"
         sx={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 'calc(100vh - 128px)', // Adjust height considering header and footer
-          py: 4, // Add some vertical padding
+          minHeight: 'calc(100vh - 128px)', 
+          py: 4, 
         }}
       >
         <Paper
           elevation={3}
           sx={{
-            p: 4, // Padding inside the paper
+            p: 4, 
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            width: '100%', // Paper takes full width of the container
+            width: '100%', 
           }}
         >
           <LockOpenIcon sx={{ fontSize: 40, mb: 2 }} color="primary" />
@@ -343,8 +290,8 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
             variant="contained"
             color="primary"
             onClick={handleLogin}
-            fullWidth // Make button full width
-            sx={{ py: 1.5 }} // Increase button padding
+            fullWidth 
+            sx={{ py: 1.5 }} 
           >
             Sign In with Microsoft
           </Button>
@@ -354,7 +301,6 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
   };
   
   if (inProgress !== InteractionStatus.None || isConsentLoading) {
-    // Show a loading indicator while MSAL is processing or consent is being checked
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -366,7 +312,7 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
   }
 
   return (
-    <CacheProvider value={emotionCache}> {/* Use CacheProvider from @emotion/react and the created emotionCache */}
+    <CacheProvider value={emotionCache}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {showConsentModal && account && (
@@ -377,22 +323,17 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
             userName={userName}
           />
         )}
-        {/* Render main app only if consent is given or not required (unauthenticated) */}
         {(!account || (userConsent.given && !showConsentModal)) && (
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
               <AppBar position="static">
                 <Toolbar>
-                  {/* <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                    RDA Tracker
-                  </Typography> */}
                   <Box sx={{ flexGrow: 1 }}>
                     <img src={process.env.PUBLIC_URL + '/RDALOGO.svg'} alt="RDA Tracker Logo" style={{ height: '40px', marginRight: '10px' }} />
                   </Box>
-                  {/* Desktop Menu Items */}
                   <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                     {accounts.length > 0 && (
                       <>
-                        <Button color="inherit" component={RouterLink} to="/">Home</Button> {/* Added Home link */}
+                        <Button color="inherit" component={RouterLink} to="/">Home</Button>
                         <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
                         <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
                         <Button color="inherit" component={RouterLink} to="/help">Help</Button>
@@ -400,7 +341,6 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                       </>
                     )}
                   </Box>
-                  {/* Mobile Menu Icon */}
                   <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
                     {accounts.length > 0 && (
                       <IconButton
@@ -416,7 +356,6 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                   </Box>
                 </Toolbar>
               </AppBar>
-              {/* Mobile Menu Dropdown */}
               {accounts.length > 0 && (
                 <Menu
                   anchorEl={anchorEl}
@@ -430,7 +369,7 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                     vertical: 'top',
                     horizontal: 'right',
                   }}
-                  sx={{ mt: '45px' }} // Adjust margin top to be below AppBar
+                  sx={{ mt: '45px' }} 
                 >
                   <MenuItem component={RouterLink} to="/" onClick={handleMobileMenuClose}>Home</MenuItem>
                   <MenuItem component={RouterLink} to="/participant-info" onClick={handleMobileMenuClose}>Participant Info</MenuItem>
@@ -445,9 +384,9 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                     <Routes>
                       <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} />
                       <Route path="/participant-info" element={<ParticipantInfo />} />
-                      <Route path="/help" element={<HelpPage />} /> {/* Added HelpPage route */}
-                      <Route path="/" element={<LandingPage />} /> {/* Default route updated to LandingPage */}
-                      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} /> {/* Add route for PrivacyPolicyPage */}
+                      <Route path="/help" element={<HelpPage />} />
+                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                     </Routes>
                   )}
                 </AuthenticatedTemplate>
@@ -461,8 +400,8 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
                   py: 2,
                   px: 2,
                   mt: 'auto',
-                  backgroundColor: (theme) =>
-                    theme.palette.mode === 'light' ? theme.palette.grey[200] : theme.palette.grey[800],
+                  backgroundColor: (thm) =>
+                    thm.palette.mode === 'light' ? thm.palette.grey[200] : thm.palette.grey[800],
                   textAlign: 'center',
                 }}
               >
@@ -483,12 +422,11 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
               </Box>
             </Box>
         )}
-        {/* Show a message if user is authenticated but consent is not given and modal is hidden (e.g. after disagreeing) */}
         {account && !userConsent.given && !showConsentModal && (
            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 128px)', textAlign: 'center', p:3 }}>
             <Typography variant="h5" gutterBottom>Consent Required</Typography>
-            <Typography variant="body1" sx={{mb:2}}>
-              You must agree to the Data Protection Policy to use this application.
+            <Typography variant="body1" sx={{mb:2}}>\
+              You must agree to the Data Protection Policy to use this application.\
             </Typography>
             <Button variant="contained" onClick={() => setShowConsentModal(true)}>Review Policy</Button>
           </Box>
@@ -498,4 +436,4 @@ const AppWithEmotionCache = () => { // Renamed App to AppWithEmotionCache
   );
 };
 
-export default AppWithEmotionCache; // Ensure this exports the wrapped component
+export default AppWithEmotionCache;
