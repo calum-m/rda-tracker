@@ -1,0 +1,18 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/static/*",
+      "/*.ico",
+      "/*.png",
+      "/*.svg",
+      "/*.json",
+      "/*.txt",
+      "/privacy-policy.html"
+    ]
+  },
+  "mimeTypes": {
+    ".json": "application/json",
+    ".webmanifest": "application/manifest+json"
+  }
+}
