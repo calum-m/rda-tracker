@@ -7,8 +7,7 @@
       "/*.png",
       "/*.svg",
       "/*.json",
-      "/*.txt",
-      "/privacy-policy.html"
+      "/*.txt"
     ]
   },
   "mimeTypes": {
