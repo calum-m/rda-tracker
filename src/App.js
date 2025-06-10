@@ -5,7 +5,7 @@ import { AppBar, Toolbar, Button, Typography, Container, Box, ThemeProvider, Css
 import MenuIcon from '@mui/icons-material/Menu';
 import { CacheProvider } from '@emotion/react';
 import ConsentModal from "./ConsentModal";
-import CoachingSessionPlans from "./LessonEvaluations";
+import CoachingSessions from "./CoachingSessions"; // Renamed import
 import ParticipantInfo from "./ParticipantInfo";
 import HelpPage from "./HelpPage";
 import LandingPage from "./LandingPage";
@@ -338,7 +338,7 @@ const AppWithEmotionCache = () => {
                       {accounts.length > 0 && (
                         <>
                           <Button color="inherit" component={RouterLink} to="/">Home</Button>
-                          <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
+                          <Button color="inherit" component={RouterLink} to="/coaching-sessions">Coaching Sessions</Button> {/* Renamed text and path */}
                           <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
                           <Button color="inherit" component={RouterLink} to="/help">Help</Button>
                           <Button color="inherit" onClick={handleLogout}>Logout ({userName})</Button>
@@ -376,7 +376,7 @@ const AppWithEmotionCache = () => {
                     sx={{ mt: '45px' }} 
                   >
                     <MenuItem component={RouterLink} to="/" onClick={handleMobileMenuClose}>Home</MenuItem>
-                    <MenuItem component={RouterLink} to="/coaching-session-plans" onClick={handleMobileMenuClose}>Coaching Session Plans</MenuItem>
+                    <MenuItem component={RouterLink} to="/coaching-sessions" onClick={handleMobileMenuClose}>Coaching Sessions</MenuItem> {/* Renamed text and path */}
                     <MenuItem component={RouterLink} to="/participant-info" onClick={handleMobileMenuClose}>Participant Info</MenuItem>
                     <MenuItem component={RouterLink} to="/help" onClick={handleMobileMenuClose}>Help</MenuItem>
                     <MenuItem onClick={() => { handleMobileMenuClose(); handleLogout(); }}>Logout ({userName})</MenuItem>
@@ -386,7 +386,7 @@ const AppWithEmotionCache = () => {
                   <AuthenticatedTemplate>
                     {accounts.length > 0 && (
                       <Routes>
-                        <Route path="/coaching-session-plans" element={<CoachingSessionPlans />} />
+                        <Route path="/coaching-sessions" element={<CoachingSessions />} /> {/* Renamed path and component */}
                         <Route path="/participant-info" element={<ParticipantInfo />} />
                         <Route path="/help" element={<HelpPage />} />
                         <Route path="/" element={<LandingPage />} />

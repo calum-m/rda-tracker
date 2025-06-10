@@ -28,7 +28,7 @@ import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIco
 // Replace this with your Dataverse URL
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
 
-const CoachingSessionPlans = () => { // Renamed component
+const CoachingSessions = () => { // Renamed component
   const { instance, accounts } = useMsal();
   const [progressRecords, setProgressRecords] = useState([]);
   const [allProgressRecords, setAllProgressRecords] = useState([]); // To store all records fetched
@@ -381,7 +381,7 @@ const CoachingSessionPlans = () => { // Renamed component
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Coaching Session Plans {/* Renamed title */}
+        Coaching Sessions {/* Renamed title */}
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -400,7 +400,7 @@ const CoachingSessionPlans = () => { // Renamed component
           startIcon={<AddIcon />}
           onClick={() => setShowCreateModal(true)}
         >
-          Create New Coaching Session Plan {/* Renamed button text */}
+          Create New Coaching Session {/* Renamed button text */}
         </Button>
       </Box>
 
@@ -426,14 +426,14 @@ const CoachingSessionPlans = () => { // Renamed component
       </Paper>
 
       <Dialog open={showCreateModal} onClose={() => setShowCreateModal(false)}>
-        <DialogTitle>Create New Coaching Session Plan</DialogTitle> {/* Renamed dialog title */}
+        <DialogTitle>Create New Coaching Session</DialogTitle> {/* Renamed dialog title */}
         <DialogContent>
           <DialogContentText sx={{mb: 2}}>
-            Fill in the details for the new coaching session plan. {/* Renamed dialog text */}
+            Fill in the details for the new coaching session. {/* Renamed dialog text */}
           </DialogContentText>
-          <TextField autoFocus margin="dense" name="cr648_lessonplan" label="Coaching Session Plan Details" type="text" fullWidth variant="standard" value={newRecord.cr648_lessonplan} onChange={handleNewRecordChange} required /> {/* Renamed label */}
+          <TextField autoFocus margin="dense" name="cr648_lessonplan" label="Coaching Session Details" type="text" fullWidth variant="standard" value={newRecord.cr648_lessonplan} onChange={handleNewRecordChange} required /> {/* Renamed label */}
           <TextField margin="dense" name="cr648_date" label="Date" type="date" fullWidth variant="standard" value={newRecord.cr648_date} onChange={handleNewRecordChange} InputLabelProps={{ shrink: true }} required />
-          <TextField margin="dense" name="cr648_participantsevaluation" label="Participant's Evaluation/Notes" type="text" fullWidth variant="standard" value={newRecord.cr648_participantsevaluation} onChange={handleNewRecordChange} /> {/* Renamed label */}
+          <TextField margin="dense" name="cr648_participantsevaluation" label="Participant's Evaluation/Notes" type="text" fullWidth variant="standard" value={newRecord.cr648_participantsevaluation} onChange={handleNewRecordChange} />
           <TextField margin="dense" name="cr648_coachname" label="Coach Name" type="text" fullWidth variant="standard" value={newRecord.cr648_coachname} onChange={handleNewRecordChange} />
         </DialogContent>
         <DialogActions>
@@ -454,7 +454,7 @@ const CoachingSessionPlans = () => { // Renamed component
         <DialogTitle id="alert-dialog-title-le">{"Confirm Delete"}</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description-le">
-            Are you sure you want to delete this coaching session plan? This action cannot be undone. {/* Renamed dialog text */}
+            Are you sure you want to delete this coaching session? This action cannot be undone. {/* Renamed dialog text */}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -473,18 +473,18 @@ const CoachingSessionPlans = () => { // Renamed component
 
       {!isLoading && !error && progressRecords.length === 0 && (
         <Typography sx={{textAlign: 'center', my: 3}}>
-          {allProgressRecords.length === 0 ? "No coaching session plans found. Click \"Create New Coaching Session Plan\" to add one." : "No records match your current filter criteria."} {/* Renamed text */}
+          {allProgressRecords.length === 0 ? "No coaching sessions found. Click \"Create New Coaching Session\" to add one." : "No records match your current filter criteria."} {/* Renamed text */}
         </Typography>
       )}
 
       {progressRecords && progressRecords.length > 0 ? (
         <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="coaching session plans table"> {/* Renamed aria-label */}
+          <Table sx={{ minWidth: 650 }} aria-label="coaching sessions table"> {/* Renamed aria-label */}
             <TableHead sx={{ backgroundColor: 'primary.main' }}>
               <TableRow>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coaching Session Plan Details</TableCell> {/* Renamed table header */}
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Date</TableCell> {/* Renamed table header to be more generic */}
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Participant's Evaluation/Notes</TableCell> {/* Renamed table header */}
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coaching Session Details</TableCell> {/* Renamed table header */}
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Date</TableCell>
+                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Participant's Evaluation/Notes</TableCell>
                 <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coach Name</TableCell>
                 <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
@@ -541,4 +541,4 @@ const CoachingSessionPlans = () => { // Renamed component
   );
 };
 
-export default CoachingSessionPlans; // Renamed export
+export default CoachingSessions; // Renamed export

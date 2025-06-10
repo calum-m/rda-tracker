@@ -14,11 +14,11 @@ const LandingPage = () => {
             variant="contained"
             color="primary"
             component={RouterLink}
-            to="/coaching-session-plans"
+            to="/coaching-sessions"
             fullWidth
             sx={{ py: 1.5 }}
           >
-            Go to Coaching Session Plans
+            Go to Coaching Sessions
           </Button>
           <Button
             variant="outlined"

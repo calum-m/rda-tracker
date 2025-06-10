@@ -33,7 +33,7 @@ function HelpPage() {
               <ListItemText primary="Participant Info" secondary="Manage participant details, add new participants, and update existing information." />
             </ListItem>
             <ListItem>
-              <ListItemText primary="Lesson Evaluations" secondary="View, create, and manage lesson evaluations for participants." />
+              <ListItemText primary="Coaching Sessions" secondary="View, create, and manage coaching sessions for participants." /> {/* Renamed text */}
             </ListItem>
             {/* Add other main navigation items as they are developed */}
           </List>
@@ -100,23 +100,23 @@ function HelpPage() {
 
         <Box sx={{ my: 2 }}>
           <Typography variant="h5" component="h2" gutterBottom>
-            Lesson Evaluations
+            Coaching Sessions {/* Renamed text */}
           </Typography>
-          <Typography variant="body1" paragraph>
-            In the "Lesson Evaluations" section, you can manage coaching session evaluations:
+          <Typography variant="body1" paragraph>\
+            In the "Coaching Sessions" section, you can manage coaching sessions: {/* Renamed text */}
           </Typography>
           <List dense>
             <ListItem>
-              <ListItemText primary="View Evaluations:" secondary="A list of all lesson evaluations is displayed." />
+              <ListItemText primary="View Sessions:" secondary="A list of all coaching sessions is displayed." /> {/* Renamed text */}
             </ListItem>
             <ListItem>
-              <ListItemText primary="Search & Filter:" secondary="Use the search bar and advanced filtering options to find specific evaluations (e.g., by lesson plan, date range, participant, coach)." />
+              <ListItemText primary="Search & Filter:" secondary="Use the search bar and advanced filtering options to find specific sessions (e.g., by session details, date range, participant, coach)." /> {/* Renamed text */}
             </ListItem>
             <ListItem>
-              <ListItemText primary="Create New Evaluation:" secondary="Click the 'Create New Record' or similar button to open a form for entering evaluation details." />
+              <ListItemText primary="Create New Session:" secondary="Click the \\\'Create New Coaching Session\\\' or similar button to open a form for entering session details." /> {/* Renamed text */}
             </ListItem>
             <ListItem>
-              <ListItemText primary="Edit Evaluation:" secondary="Inline editing may be available for quick updates, or an 'Edit' option for more detailed changes." />
+              <ListItemText primary="Edit Session:" secondary="Inline editing may be available for quick updates, or an \\\'Edit\\\' option for more detailed changes." /> {/* Renamed text */}
             </ListItem>
           </List>
         </Box>
