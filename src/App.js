@@ -338,8 +338,8 @@ const AppWithEmotionCache = () => {
                       {accounts.length > 0 && (
                         <>
                           <Button color="inherit" component={RouterLink} to="/">Home</Button>
-                          <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
                           <Button color="inherit" component={RouterLink} to="/coaching-session-plans">Coaching Session Plans</Button>
+                          <Button color="inherit" component={RouterLink} to="/participant-info">Participant Info</Button>
                           <Button color="inherit" component={RouterLink} to="/help">Help</Button>
                           <Button color="inherit" onClick={handleLogout}>Logout ({userName})</Button>
                         </>
@@ -376,8 +376,8 @@ const AppWithEmotionCache = () => {
                     sx={{ mt: '45px' }} 
                   >
                     <MenuItem component={RouterLink} to="/" onClick={handleMobileMenuClose}>Home</MenuItem>
-                    <MenuItem component={RouterLink} to="/participant-info" onClick={handleMobileMenuClose}>Participant Info</MenuItem>
                     <MenuItem component={RouterLink} to="/coaching-session-plans" onClick={handleMobileMenuClose}>Coaching Session Plans</MenuItem>
+                    <MenuItem component={RouterLink} to="/participant-info" onClick={handleMobileMenuClose}>Participant Info</MenuItem>
                     <MenuItem component={RouterLink} to="/help" onClick={handleMobileMenuClose}>Help</MenuItem>
                     <MenuItem onClick={() => { handleMobileMenuClose(); handleLogout(); }}>Logout ({userName})</MenuItem>
                   </Menu>

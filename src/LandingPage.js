@@ -14,21 +14,21 @@ const LandingPage = () => {
             variant="contained"
             color="primary"
             component={RouterLink}
-            to="/participant-info"
-            fullWidth
-            sx={{ py: 1.5 }}
-          >
-            Create/View Participants
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            component={RouterLink}
             to="/coaching-session-plans"
             fullWidth
             sx={{ py: 1.5 }}
           >
             Go to Coaching Session Plans
+          </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            component={RouterLink}
+            to="/participant-info"
+            fullWidth
+            sx={{ py: 1.5 }}
+          >
+            Create/View Participants
           </Button>
         </Box>
       </Paper>
