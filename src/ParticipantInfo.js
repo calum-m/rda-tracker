@@ -134,19 +134,18 @@ const creationFormFields = {
   'cr648_heightinftandin': { label: 'Height (ft/in)', type: 'text', required: false, gridSpan: 6 },
   'cr648_weightinkg': { label: 'Weight (kg)', type: 'number', required: false, gridSpan: 6 },
   'cr648_weightinstones': { label: 'Weight (stones/lbs)', type: 'text', required: false, gridSpan: 6 },
-  'cr648_disabilitystatus': { 
-    label: 'Disability Status', 
-    type: 'select', 
-    required: false, 
-    gridSpan: 12, 
+  'cr648_disabilitystatus': {
+    label: 'Disability Status',
+    type: 'select',
+    required: false,
+    gridSpan: 12,
     options: [
-      {value: 791310000, label: 'A'}, 
-      {value: 791310001, label: 'B'},
-      {value: 791310002, label: 'C'},
-      {value: 791310003, label: 'D'},
-      {value: 791310004, label: 'E'},
+      {value: 791310000, label: 'A - Physical Sensory Only'},
+      {value: 791310001, label: 'B - Learning'},
+      {value: 791310002, label: 'C - Physical + Learning'},
+      {value: 791310003, label: 'D - Autistic Spectrum'},
       {value: 791310005, label: 'Disability'}
-    ] 
+    ]
   },
   'cr648_epilepsystatus': { label: 'Epilepsy Status', type: 'select', required: false, gridSpan: 12, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
   'cr648_startdate': { label: 'Start Date', type: 'date', required: false, gridSpan: 6 },
