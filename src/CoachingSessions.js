@@ -117,12 +117,6 @@ const CoachingSessions = () => { // Renamed component
       });
   }, [accounts, instance]);
 
-  const handleEdit = (record) => {
-    setEditingId(record.cr648_lessonevaluationid);
-    const formattedDate = record.cr648_date ? new Date(record.cr648_date).toISOString().split('T')[0] : '';
-    setEditFormData({ ...record, cr648_date: formattedDate });
-  };
-
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditFormData({});
