@@ -26,8 +26,10 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Container from '@mui/material/Container'; // Added Container import
 import DialogContentText from '@mui/material/DialogContentText'; // Added DialogContentText
 import Grid from '@mui/material/Grid'; // Import Grid
+import Pagination from '@mui/material/Pagination'; // Import Pagination
 
 // Icons
+import VisibilityIcon from '@mui/icons-material/Visibility'; // Added VisibilityIcon for view mode
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
@@ -164,6 +166,7 @@ function ParticipantInfo() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedParticipantId, setExpandedParticipantId] = useState(null);
+  const [isViewMode, setIsViewMode] = useState(false); // Track if we're in view mode vs edit mode
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newParticipant, setNewParticipant] = useState({});
@@ -173,6 +176,11 @@ function ParticipantInfo() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [participantToDelete, setParticipantToDelete] = useState(null); // For delete confirmation
   const [isDeleting, setIsDeleting] = useState(false); // For delete operation loading state
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
@@ -503,6 +511,62 @@ function ParticipantInfo() {
     }
   }, [expandedParticipantId, participantData, _setOriginalEditData, setEditFormData, setExpandedParticipantId]); // Removed basicInfoFields and unnecessary dependencies
 
+  // Handle view mode toggle (read-only)
+  const handleViewRecord = useCallback((participantId) => {
+    const currentlyExpandedId = expandedParticipantId;
+    const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
+    
+    setExpandedParticipantId(newExpandedId);
+    setIsViewMode(true); // Set to view mode
+    
+    if (newExpandedId) {
+      const participantToView = participantData.find(p => p[basicInfoFields.id] === newExpandedId);
+      if (participantToView) {
+        // Just set the data for viewing, no edit form preparation needed
+        setEditFormData(participantToView);
+        _setOriginalEditData({ ...participantToView });
+      }
+    } else {
+      setEditFormData({});
+      _setOriginalEditData({});
+    }
+  }, [expandedParticipantId, participantData, _setOriginalEditData, setEditFormData, setExpandedParticipantId]);
+
+  // Handle edit mode toggle (editable)
+  const handleEditRecord = useCallback((participantId) => {
+    const currentlyExpandedId = expandedParticipantId;
+    const newExpandedId = currentlyExpandedId === participantId ? null : participantId;
+    
+    setExpandedParticipantId(newExpandedId);
+    setIsViewMode(false); // Set to edit mode
+    
+    if (newExpandedId) {
+      const participantToEdit = participantData.find(p => p[basicInfoFields.id] === newExpandedId);
+      if (participantToEdit) {
+        const initialFormValues = {};
+        Object.keys(participantToEdit).forEach(key => {
+            const fieldDefinition = creationFormFields[key];
+            const value = participantToEdit[key];
+
+            if (fieldDefinition?.type === 'datetime-local' && typeof value === 'string' && value.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z?$/)) {
+              initialFormValues[key] = value.substring(0, 16); // YYYY-MM-DDTHH:MM
+            } else if (fieldDefinition?.type === 'date' && typeof value === 'string' && value.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z?$/)) {
+              initialFormValues[key] = formatDateForInput(value); // YYYY-MM-DD
+            } else if (fieldDefinition?.type === 'checkbox'){
+              initialFormValues[key] = value === null || typeof value === 'undefined' ? false : Boolean(value);
+            } else {
+              initialFormValues[key] = value;
+            }
+        });
+        setEditFormData(initialFormValues);
+        _setOriginalEditData({ ...participantToEdit });
+      }
+    } else {
+      setEditFormData({});
+      _setOriginalEditData({});
+    }
+  }, [expandedParticipantId, participantData, _setOriginalEditData, setEditFormData, setExpandedParticipantId]);
+
 
   const handleEditFormChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -628,6 +692,25 @@ function ParticipantInfo() {
     };
   }, [searchTerm, allParticipantData]); // Depend on searchTerm and allParticipantData
 
+  // Update total records and paginate data when participantData changes
+  useEffect(() => {
+    setTotalRecords(participantData.length);
+    // Reset to page 1 if current page exceeds total pages
+    const totalPages = Math.ceil(participantData.length / recordsPerPage);
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [participantData, currentPage, recordsPerPage]);
+
+  // Get current page data
+  const getCurrentPageData = () => {
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    return participantData.slice(startIndex, endIndex);
+  };
+
+  const currentPageData = getCurrentPageData();
+
 
   // Render the table
   return (
@@ -676,7 +759,7 @@ function ParticipantInfo() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {participantData.map((participant) => (
+              {currentPageData.map((participant) => (
                 <React.Fragment key={participant[basicInfoFields.id]}>
                   <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
                     {/* <TableCell> // This cell is removed as the edit icon is now in actions
@@ -695,12 +778,22 @@ function ParticipantInfo() {
                     <TableCell>{formatDate(participant[basicInfoFields.dob])}</TableCell>
                     <TableCell>
                       <IconButton 
+                        aria-label="view participant" 
+                        size="small" 
+                        onClick={() => handleViewRecord(participant[basicInfoFields.id])}
+                        sx={{ mr: 1 }}
+                        color="info"
+                      >
+                        {expandedParticipantId === participant[basicInfoFields.id] && isViewMode ? <KeyboardArrowUpIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                      <IconButton 
                         aria-label="edit participant" 
                         size="small" 
-                        onClick={() => handleToggleDetails(participant[basicInfoFields.id])}
+                        onClick={() => handleEditRecord(participant[basicInfoFields.id])}
                         sx={{ mr: 1 }}
+                        color="primary"
                       >
-                        {expandedParticipantId === participant[basicInfoFields.id] ? <KeyboardArrowUpIcon /> : <EditIcon />}
+                        {expandedParticipantId === participant[basicInfoFields.id] && !isViewMode ? <KeyboardArrowUpIcon /> : <EditIcon />}
                       </IconButton>
                       <IconButton 
                         aria-label="delete participant" 
@@ -717,10 +810,53 @@ function ParticipantInfo() {
                       <Collapse in={expandedParticipantId === participant[basicInfoFields.id]} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 1, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
                           <Typography variant="h6" gutterBottom component="div">
-                            Edit Participant Details
+                            {isViewMode ? 'Participant Details' : 'Edit Participant Details'}
                           </Typography>
                           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                          <Box component="form" onSubmit={(e) => e.preventDefault()} sx={{ mt: 1 }}>
+                          
+                          {isViewMode ? (
+                            // View Mode - Read-only display
+                            <Box sx={{ mt: 1 }}>
+                              <Grid container spacing={2}>
+                                {Object.keys(creationFormFields).map(fieldKey => {
+                                  const field = creationFormFields[fieldKey];
+                                  if (fieldKey === basicInfoFields.id) return null; // Don't show ID field
+
+                                  const gridSpan = field.gridSpan || 6;
+                                  const value = editFormData[fieldKey];
+                                  
+                                  let displayValue = '';
+                                  if (field.type === 'date' && value) {
+                                    displayValue = formatDate(value);
+                                  } else if (field.type === 'datetime-local' && value) {
+                                    displayValue = new Date(value).toLocaleString();
+                                  } else if (field.type === 'checkbox') {
+                                    displayValue = value ? 'Yes' : 'No';
+                                  } else if (field.type === 'select' && field.options) {
+                                    const option = field.options.find(opt => opt.value === value);
+                                    displayValue = option ? option.label : value || 'N/A';
+                                  } else {
+                                    displayValue = value || 'N/A';
+                                  }
+
+                                  return (
+                                    <Grid item xs={12} sm={gridSpan} key={fieldKey}>
+                                      <Box sx={{ mb: 1 }}>
+                                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                                          {field.label}
+                                        </Typography>
+                                        <Typography variant="body1">
+                                          {displayValue}
+                                        </Typography>
+                                      </Box>
+                                    </Grid>
+                                  );
+                                })}
+                              </Grid>
+                            </Box>
+                          ) : (
+                            // Edit Mode - Editable form
+                            <Box component="form" onSubmit={(e) => e.preventDefault()} sx={{ mt: 1 }}>
                             <Grid container spacing={2}>
                               {Object.keys(creationFormFields).map(fieldKey => {
                                 const field = creationFormFields[fieldKey];
@@ -794,24 +930,27 @@ function ParticipantInfo() {
                               })}
                             </Grid>
                           </Box>
-                          {isUpdating && (
+                          )}
+                          {!isViewMode && isUpdating && (
                             <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, mb: 1 }}>
                                 <CircularProgress size={20} sx={{mr:1}}/> 
                                 <Typography>Saving...</Typography>
                             </Box>
                           )}
                           {/* Save is explicit via button now */}
-                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                            <Button 
-                                variant="contained" 
-                                color="primary" 
-                                startIcon={<SaveIcon />}
-                                onClick={() => handleSaveChanges(participant[basicInfoFields.id])}
-                                disabled={isUpdating}
-                            >
-                                {isUpdating ? 'Saving...' : 'Save Changes'}
-                            </Button>
-                          </Box>
+                          {!isViewMode && (
+                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                              <Button 
+                                  variant="contained" 
+                                  color="primary" 
+                                  startIcon={<SaveIcon />}
+                                  onClick={() => handleSaveChanges(participant[basicInfoFields.id])}
+                                  disabled={isUpdating}
+                              >
+                                  {isUpdating ? 'Saving...' : 'Save Changes'}
+                              </Button>
+                            </Box>
+                          )}
                         </Box>
                       </Collapse>
                     </TableCell>
@@ -956,6 +1095,20 @@ function ParticipantInfo() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Pagination Component - Always show, even if 1 page */}
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+        <Pagination
+          count={Math.ceil(totalRecords / recordsPerPage)}
+          page={currentPage}
+          onChange={(event, value) => setCurrentPage(value)}
+          color="primary"
+          variant="outlined"
+          shape="rounded"
+          size="medium"
+          sx={{ '& .MuiPaginationItem-root': { borderRadius: '8px' } }}
+        />
+      </Box>
     </Container>
   );
 }

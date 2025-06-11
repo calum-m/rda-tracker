@@ -23,7 +23,8 @@ import {
   Alert,
   IconButton // Added IconButton
 } from "@mui/material";
-import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon, Delete as DeleteIcon } from '@mui/icons-material'; // Added DeleteIcon
+import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material'; // Added VisibilityIcon
+import Pagination from '@mui/material/Pagination'; // Import Pagination
 
 // Replace this with your Dataverse URL
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -32,7 +33,9 @@ const CoachingSessions = () => { // Renamed component
   const { instance, accounts } = useMsal();
   const [progressRecords, setProgressRecords] = useState([]);
   const [allProgressRecords, setAllProgressRecords] = useState([]); // To store all records fetched
+  const [currentFilteredRecords, setCurrentFilteredRecords] = useState([]); // Holds all records matching filters, before pagination
   const [editingId, setEditingId] = useState(null);
+  const [isViewMode, setIsViewMode] = useState(false); // Track if we're in view mode vs edit mode
   const [editFormData, setEditFormData] = useState({});
   const [newRecord, setNewRecord] = useState({
     cr648_lessonplan: '',
@@ -47,6 +50,9 @@ const CoachingSessions = () => { // Renamed component
   const [recordToDelete, setRecordToDelete] = useState(null); // For delete confirmation
   const [isDeleting, setIsDeleting] = useState(false); // For delete operation loading state
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // New states for advanced filtering
   const [filterLessonPlan, setFilterLessonPlan] = useState("");
@@ -90,7 +96,8 @@ const CoachingSessions = () => { // Renamed component
           .then((data) => {
             const records = data.value || [];
             setAllProgressRecords(records);
-            setProgressRecords(records); // Initially, displayed records are all records
+            // setCurrentFilteredRecords(records); // applyFiltersAndSearch will handle this
+            // setProgressRecords(records.slice(0, itemsPerPage)); // Initial page
             console.log("Fetched data from Dataverse:", data);
           })
           .catch((err) => {
@@ -119,6 +126,23 @@ const CoachingSessions = () => { // Renamed component
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditFormData({});
+    setIsViewMode(false); // Reset view mode when canceling
+  };
+
+  // Handle view mode toggle (read-only)
+  const handleViewRecord = (record) => {
+    setEditingId(record.cr648_lessonevaluationid);
+    setIsViewMode(true); // Set to view mode
+    const formattedDate = record.cr648_date ? new Date(record.cr648_date).toISOString().split('T')[0] : '';
+    setEditFormData({ ...record, cr648_date: formattedDate });
+  };
+
+  // Handle edit mode toggle (editable)
+  const handleEditRecord = (record) => {
+    setEditingId(record.cr648_lessonevaluationid);
+    setIsViewMode(false); // Set to edit mode
+    const formattedDate = record.cr648_date ? new Date(record.cr648_date).toISOString().split('T')[0] : '';
+    setEditFormData({ ...record, cr648_date: formattedDate });
   };
 
   const handleEditFormChange = (event) => {
@@ -370,12 +394,29 @@ const CoachingSessions = () => { // Renamed component
         return recordDate && recordDate <= toDate;
       });
     }
-    setProgressRecords(filtered);
+    setCurrentFilteredRecords(filtered); // Update all filtered records
+    // setCurrentPage(1); // Reset to page 1 when filters change - handled by useEffect dependency on currentFilteredRecords
   };
   
   useEffect(() => {
     applyFiltersAndSearch(allProgressRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
   }, [searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName, allProgressRecords]);
+
+  useEffect(() => {
+    // When filters change (currentFilteredRecords updates) or page changes, calculate the records for the current page
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setProgressRecords(currentFilteredRecords.slice(startIndex, endIndex));
+    
+    // If current page becomes invalid after filtering (e.g., less items), reset to page 1
+    if (currentPage > 1 && startIndex >= currentFilteredRecords.length) {
+        setCurrentPage(1);
+    }
+  }, [currentFilteredRecords, currentPage, itemsPerPage]);
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+  };
 
 
   return (
@@ -471,71 +512,128 @@ const CoachingSessions = () => { // Renamed component
         </DialogActions>
       </Dialog>
 
-      {!isLoading && !error && progressRecords.length === 0 && (
+      {!isLoading && !error && allProgressRecords.length === 0 && ( // Check allProgressRecords for initial empty state
         <Typography sx={{textAlign: 'center', my: 3}}>
-          {allProgressRecords.length === 0 ? "No coaching sessions found. Click \"Create New Coaching Session\" to add one." : "No records match your current filter criteria."} {/* Renamed text */}
+          No coaching sessions found. Click "Create New Coaching Session" to add one.
+        </Typography>
+      )}
+
+      {!isLoading && !error && allProgressRecords.length > 0 && currentFilteredRecords.length === 0 && ( // Check if filters result in no records
+        <Typography sx={{textAlign: 'center', my: 3}}>
+          No records match your current filter criteria.
         </Typography>
       )}
 
       {progressRecords && progressRecords.length > 0 ? (
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="coaching sessions table"> {/* Renamed aria-label */}
-            <TableHead sx={{ backgroundColor: 'primary.main' }}>
-              <TableRow>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coaching Session Details</TableCell> {/* Renamed table header */}
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Date</TableCell>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Participant's Evaluation/Notes</TableCell>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coach Name</TableCell>
-                <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {progressRecords.map((record) => (
-                record ? ( // Ensure record is not null/undefined
-                  <TableRow key={record.cr648_lessonevaluationid} hover>
-                    {editingId === record.cr648_lessonevaluationid ? (
-                      <>
-                        <TableCell><TextField size="small" name="cr648_lessonplan" value={editFormData.cr648_lessonplan || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
-                        <TableCell><TextField size="small" type="date" name="cr648_date" value={editFormData.cr648_date || ''} onChange={handleEditFormChange} fullWidth InputLabelProps={{ shrink: true }} /></TableCell>
-                        <TableCell><TextField size="small" name="cr648_participantsevaluation" value={editFormData.cr648_participantsevaluation || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
-                        <TableCell><TextField size="small" name="cr648_coachname" value={editFormData.cr648_coachname || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
-                        <TableCell>
-                          <Button onClick={handleSaveEdit} startIcon={<SaveIcon />} variant="contained" color="success" sx={{ mr: 1 }} disabled={isLoading}>
-                            {isLoading && editingId === record.cr648_lessonevaluationid ? <CircularProgress size={20} /> : "Save"}
-                          </Button>
-                          <Button onClick={handleCancelEdit} startIcon={<CancelIcon />} variant="outlined" color="secondary" sx={{mr: 1}}>Cancel</Button> {/* Added margin */}
-                          {/* Delete button is not shown in edit mode for simplicity, or could be added here */}
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell>{record.cr648_lessonplan || "N/A"}</TableCell>
-                        <TableCell>{record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "N/A"}</TableCell>
-                        <TableCell>{record.cr648_participantsevaluation || "N/A"}</TableCell>
-                        <TableCell>{record.cr648_coachname || "N/A"}</TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleEdit(record)} size="small" sx={{ mr: 1 }} aria-label="edit">
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton 
-                            onClick={() => openDeleteConfirmDialog(record.cr648_lessonevaluationid)} 
-                            size="small" 
-                            color="error" 
-                            aria-label="delete"
-                           >
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                ) : null
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <>
+          <TableContainer component={Paper}>
+            <Table sx={{ minWidth: 650 }} aria-label="coaching sessions table"> {/* Renamed aria-label */}
+              <TableHead sx={{ backgroundColor: 'primary.main' }}>
+                <TableRow>
+                  <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coaching Session Details</TableCell> {/* Renamed table header */}
+                  <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Date</TableCell>
+                  <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Participant's Evaluation/Notes</TableCell>
+                  <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Coach Name</TableCell>
+                  <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {progressRecords.map((record) => (
+                  record ? ( // Ensure record is not null/undefined
+                    <TableRow key={record.cr648_lessonevaluationid} hover>
+                      {editingId === record.cr648_lessonevaluationid && !isViewMode ? (
+                        // Edit Mode - Editable fields
+                        <>
+                          <TableCell><TextField size="small" name="cr648_lessonplan" value={editFormData.cr648_lessonplan || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
+                          <TableCell><TextField size="small" type="date" name="cr648_date" value={editFormData.cr648_date || ''} onChange={handleEditFormChange} fullWidth InputLabelProps={{ shrink: true }} /></TableCell>
+                          <TableCell><TextField size="small" name="cr648_participantsevaluation" value={editFormData.cr648_participantsevaluation || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
+                          <TableCell><TextField size="small" name="cr648_coachname" value={editFormData.cr648_coachname || ''} onChange={handleEditFormChange} fullWidth /></TableCell>
+                          <TableCell>
+                            <Button onClick={handleSaveEdit} startIcon={<SaveIcon />} variant="contained" color="success" sx={{ mr: 1 }} disabled={isLoading}>
+                              {isLoading && editingId === record.cr648_lessonevaluationid ? <CircularProgress size={20} /> : "Save"}
+                            </Button>
+                            <Button onClick={handleCancelEdit} startIcon={<CancelIcon />} variant="outlined" color="secondary" sx={{mr: 1}}>Cancel</Button>
+                          </TableCell>
+                        </>
+                      ) : editingId === record.cr648_lessonevaluationid && isViewMode ? (
+                        // View Mode - Read-only formatted display
+                        <>
+                          <TableCell>
+                            <Typography variant="body1" sx={{ p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+                              {editFormData.cr648_lessonplan || "N/A"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body1" sx={{ p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+                              {editFormData.cr648_date ? new Date(editFormData.cr648_date).toLocaleDateString() : "N/A"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body1" sx={{ p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+                              {editFormData.cr648_participantsevaluation || "N/A"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body1" sx={{ p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+                              {editFormData.cr648_coachname || "N/A"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Button onClick={handleCancelEdit} startIcon={<CancelIcon />} variant="outlined" color="secondary">
+                              Close
+                            </Button>
+                          </TableCell>
+                        </>
+                      ) : (
+                        // Normal Mode - Collapsed view
+                        <>
+                          <TableCell>{record.cr648_lessonplan || "N/A"}</TableCell>
+                          <TableCell>{record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "N/A"}</TableCell>
+                          <TableCell>{record.cr648_participantsevaluation || "N/A"}</TableCell>
+                          <TableCell>{record.cr648_coachname || "N/A"}</TableCell>
+                          <TableCell>
+                            <IconButton onClick={() => handleViewRecord(record)} size="small" sx={{ mr: 1 }} aria-label="view" color="info">
+                              <VisibilityIcon />
+                            </IconButton>
+                            <IconButton onClick={() => handleEditRecord(record)} size="small" sx={{ mr: 1 }} aria-label="edit" color="primary">
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton 
+                              onClick={() => openDeleteConfirmDialog(record.cr648_lessonevaluationid)} 
+                              size="small" 
+                              color="error" 
+                              aria-label="delete"
+                             >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ) : null
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {currentFilteredRecords.length > itemsPerPage && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <Pagination
+                count={Math.ceil(currentFilteredRecords.length / itemsPerPage)}
+                page={currentPage}
+                onChange={handlePageChange}
+                variant="outlined"
+                shape="rounded"
+                color="primary"
+                size="medium"
+              />
+            </Box>
+          )}
+          </>
       ) : (
-        !isLoading && <Typography sx={{ mt: 2, textAlign: 'center' }}>No coaching session plan records found.</Typography> /* Renamed text */
+        // This specific message might be redundant due to the checks above, but kept for safety.
+        // Consider removing if the above two Typography blocks cover all "no records" scenarios.
+        !isLoading && !error && allProgressRecords.length > 0 && currentFilteredRecords.length > 0 && progressRecords.length === 0 && 
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>No coaching session records for the current page.</Typography>
       )}
     </Container>
   );
