@@ -1,6 +1,11 @@
 # RDA Tracker Application (v2.1.0)
 
+> **🌐 Live Demo**: [https://tracker.highlandgrouprda.org.uk](https://tracker.highlandgrouprda.org.uk)  
+> **📱 PWA Support**: Install directly from your browser as a desktop/mobile app
+
 This React application is designed to track and manage information for an RDA (Riding for the Disabled Association) group. It provides comprehensive functionalities for managing participant information and coaching sessions, leveraging Azure Active Directory for authentication and Microsoft Dataverse as the backend data store. The application features a modern, responsive design built with Material-UI components throughout, and is deployed as an Azure Static Web App.
+
+> **🎯 Portfolio Project**: This application demonstrates enterprise-level React development with Azure integration, modern UI patterns, and comprehensive security implementation.
 
 ## ✨ Current Features (v2.1.0)
 
@@ -106,7 +111,7 @@ This React application is designed to track and manage information for an RDA (R
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/calumk/rda-tracker.git
     cd rda-tracker/rda-tracker
     ```
 
@@ -220,6 +225,12 @@ We welcome contributions! Please ensure:
 - ✅ Add appropriate error handling
 - ✅ Update documentation as needed
 - ✅ Test on multiple devices and browsers
+
+## 📧 Contact & License
+
+- **Author**: [Calum Knott](https://github.com/calumk)
+- **License**: MIT (see [LICENSE](LICENSE) file)
+- **Issues**: Please report bugs via [GitHub Issues](https://github.com/calumk/rda-tracker/issues)
 
 ## 🚀 Key Features Summary
 

@@ -1,7 +1,25 @@
 {
   "name": "rda-tracker",
   "version": "2.1.0",
-  "private": true,
+  "description": "A comprehensive React application for managing RDA (Riding for the Disabled Association) participants and coaching sessions, featuring Azure AD authentication and Microsoft Dataverse integration.",
+  "homepage": "https://tracker.highlandgrouprda.org.uk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/calumk/rda-tracker.git"
+  },
+  "author": "Calum Knott",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "azure",
+    "dataverse",
+    "rda",
+    "material-ui",
+    "msal",
+    "pwa",
+    "typescript"
+  ],
+  "private": false,
   "engines": {
     "node": ">=20.0.0"
   },
