@@ -228,9 +228,9 @@ We welcome contributions! Please ensure:
 
 ## 📧 Contact & License
 
-- **Author**: [Calum Knott](https://github.com/calumk)
+- **Author**: [Calum Muir](https://github.com/calum-m)
 - **License**: MIT (see [LICENSE](LICENSE) file)
-- **Issues**: Please report bugs via [GitHub Issues](https://github.com/calumk/rda-tracker/issues)
+- **Issues**: Please report bugs via [GitHub Issues](https://github.com/calum-m/rda-tracker/issues)
 
 ## 🚀 Key Features Summary
 
