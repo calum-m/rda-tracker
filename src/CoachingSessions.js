@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useMsal } from "@azure/msal-react";
 import {
   Box,
   Button,
@@ -21,18 +20,32 @@ import {
   Paper,
   Grid,
   Alert,
-  IconButton // Added IconButton
+  IconButton,
+  Chip // Added Chip for offline indicators
 } from "@mui/material";
-import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material'; // Added VisibilityIcon
+import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, CloudOff as CloudOffIcon, Sync as SyncIcon } from '@mui/icons-material'; // Added offline icons
 import Pagination from '@mui/material/Pagination'; // Import Pagination
+import useOfflineData from './hooks/useOfflineData'; // Import offline data hook
 
 // Replace this with your Dataverse URL
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
 
 const CoachingSessions = () => { // Renamed component
-  const { instance, accounts } = useMsal();
+  // Use offline data hook instead of manual API calls
+  const {
+    data: allProgressRecords,
+    isLoading,
+    error,
+    isOnline,
+    syncStatus,
+    fetchData,
+    createRecord,
+    updateRecord,
+    deleteRecord,
+    clearError
+  } = useOfflineData(dataverseUrl, 'cr648_lessonevaluations', 'cr648_lessonevaluationid');
+
   const [progressRecords, setProgressRecords] = useState([]);
-  const [allProgressRecords, setAllProgressRecords] = useState([]); // To store all records fetched
   const [currentFilteredRecords, setCurrentFilteredRecords] = useState([]); // Holds all records matching filters, before pagination
   const [editingId, setEditingId] = useState(null);
   const [isViewMode, setIsViewMode] = useState(false); // Track if we're in view mode vs edit mode
@@ -44,8 +57,6 @@ const CoachingSessions = () => { // Renamed component
     cr648_coachname: ''
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null); // For delete confirmation
   const [isDeleting, setIsDeleting] = useState(false); // For delete operation loading state
@@ -61,61 +72,10 @@ const CoachingSessions = () => { // Renamed component
   const [filterParticipantEval, setFilterParticipantEval] = useState("");
   const [filterCoachName, setFilterCoachName] = useState("");
 
+  // Initial data fetch
   useEffect(() => {
-    if (accounts.length === 0) return;
-    setIsLoading(true);
-    setError(null);
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
-
-    instance
-      .acquireTokenSilent(request)
-      .then((response) => {
-        const token = response.accessToken;
-        fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations?$orderby=createdon desc`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            "OData-MaxVersion": "4.0",
-            "OData-Version": "4.0",
-          },
-        })
-          .then((res) => {
-            if (!res.ok) {
-              return res.json().then(errData => {
-                console.error("Fetch failed with status:", res.status, errData);
-                setError(`Failed to fetch data: ${errData.error?.message || res.statusText}`);
-                return { value: [] };
-              });
-            }
-            return res.json();
-          })
-          .then((data) => {
-            const records = data.value || [];
-            setAllProgressRecords(records);
-            // setCurrentFilteredRecords(records); // applyFiltersAndSearch will handle this
-            // setProgressRecords(records.slice(0, itemsPerPage)); // Initial page
-            console.log("Fetched data from Dataverse:", data);
-          })
-          .catch((err) => {
-            console.error("Fetch processing failed:", err);
-            setError(`Fetch processing failed: ${err.message}`);
-            setAllProgressRecords([]);
-            setProgressRecords([]);
-          })
-          .finally(() => setIsLoading(false));
-      })
-      .catch((err) => {
-        console.error("Token acquisition failed:", err);
-        setError(`Token acquisition failed: ${err.message}`);
-        setAllProgressRecords([]);
-        setProgressRecords([]);
-        setIsLoading(false);
-      });
-  }, [accounts, instance]);
+    fetchData(true, 'createdon desc');
+  }, [fetchData]);
 
   const handleCancelEdit = () => {
     setEditingId(null);
@@ -149,17 +109,8 @@ const CoachingSessions = () => { // Renamed component
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
-    setIsLoading(true); // Indicate loading state
-    setError(null);
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
 
     try {
-      const response = await instance.acquireTokenSilent(request);
-      const token = response.accessToken;
       const updatePayload = {
         cr648_lessonplan: editFormData.cr648_lessonplan,
         cr648_date: editFormData.cr648_date,
@@ -167,42 +118,16 @@ const CoachingSessions = () => { // Renamed component
         cr648_coachname: editFormData.cr648_coachname,
       };
       
-      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations(${editingId})`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(updatePayload),
-      });
-
-      if (!apiResponse.ok) {
-        const errorData = await apiResponse.json();
-        console.error("Update failed with status:", apiResponse.status, errorData);
-        setError(`Update failed: ${errorData.error?.message || apiResponse.statusText}`);
-        throw new Error(`HTTP error! status: ${apiResponse.status}`);
-      }
-
-      const updatedRecord = await apiResponse.json();
-      const updatedRecords = allProgressRecords.map((rec) =>
-        rec.cr648_lessonevaluationid === editingId ? updatedRecord : rec
-      );
-      setAllProgressRecords(updatedRecords);
-      // Re-apply filters after updating
-      applyFiltersAndSearch(updatedRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
+      await updateRecord(editingId, updatePayload);
       setEditingId(null);
       setEditFormData({});
-      console.log("Record updated successfully:", updatedRecord);
-
+      
+      // Clear any previous errors
+      clearError();
+      
+      console.log("Record updated successfully");
     } catch (err) {
       console.error("Save operation failed:", err);
-      setError(`Save operation failed: ${err.message}`);
-    } finally {
-      setIsLoading(false); // End loading state
     }
   };
 
@@ -210,61 +135,20 @@ const CoachingSessions = () => { // Renamed component
     if (!recordIdToDelete) return;
 
     setIsDeleting(true);
-    setError(null);
-
-    if (accounts.length === 0 || !instance) {
-      setError("Authentication error. Cannot delete record.");
-      setIsDeleting(false);
-      setRecordToDelete(null); // Close dialog
-      return;
-    }
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
 
     try {
-      const response = await instance.acquireTokenSilent(request);
-      const token = response.accessToken;
-
-      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations(${recordIdToDelete})`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-        },
-      });
-
-      if (!apiResponse.ok) {
-        let errMessage = `Failed to delete record: ${apiResponse.status}`;
-        if (apiResponse.headers.get("content-type")?.includes("application/json")) {
-            const errData = await apiResponse.json();
-            console.error("Delete failed with status:", apiResponse.status, errData);
-            errMessage = errData.error?.message || errMessage;
-        } else {
-            console.error("Delete failed with status:", apiResponse.status, await apiResponse.text());
-        }
-        setError(errMessage);
-      } else {
-        console.log("Delete successful for record:", recordIdToDelete);
-        setError(null);
-        // Update state to remove the deleted record
-        const updatedRecords = allProgressRecords.filter(rec => rec.cr648_lessonevaluationid !== recordIdToDelete);
-        setAllProgressRecords(updatedRecords);
-        // Re-apply filters after deleting
-        applyFiltersAndSearch(updatedRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
-        // If the deleted record was being edited, cancel edit mode
-        if (editingId === recordIdToDelete) {
-            setEditingId(null);
-            setEditFormData({});
-        }
+      await deleteRecord(recordIdToDelete);
+      
+      // If the deleted record was being edited, cancel edit mode
+      if (editingId === recordIdToDelete) {
+        setEditingId(null);
+        setEditFormData({});
       }
+      
+      clearError();
+      console.log("Delete successful for record:", recordIdToDelete);
     } catch (err) {
       console.error("Delete operation failed:", err);
-      setError(err.message || "An unexpected error occurred during delete.");
     } finally {
       setIsDeleting(false);
       setRecordToDelete(null); // Close dialog
@@ -287,41 +171,11 @@ const CoachingSessions = () => { // Renamed component
 
   const handleCreateRecord = async (event) => {
     event.preventDefault();
-    if (accounts.length === 0) return;
-    setIsLoading(true);
-    setError(null);
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
+    
     try {
-      const response = await instance.acquireTokenSilent(request);
-      const token = response.accessToken;
       const payload = { ...newRecord };
-      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_lessonevaluations`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!apiResponse.ok) {
-        const errorData = await apiResponse.json();
-        console.error("Create failed with status:", apiResponse.status, errorData);
-        setError(`Create failed: ${errorData.error?.message || apiResponse.statusText}`);
-        throw new Error(`HTTP error! status: ${apiResponse.status}`);
-      }
-      const createdRecord = await apiResponse.json();
-      const updatedRecords = [createdRecord, ...allProgressRecords];
-      setAllProgressRecords(updatedRecords);
-      // Re-apply filters after creating
-      applyFiltersAndSearch(updatedRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName);
+      await createRecord(payload);
+      
       setNewRecord({
         cr648_lessonplan: '',
         cr648_date: '',
@@ -329,12 +183,10 @@ const CoachingSessions = () => { // Renamed component
         cr648_coachname: ''
       });
       setShowCreateModal(false); // Close modal on success
-      console.log("Record created successfully:", createdRecord);
+      clearError();
+      console.log("Record created successfully");
     } catch (err) {
       console.error("Create operation failed:", err);
-      setError(`Create operation failed: ${err.message}`);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -415,11 +267,42 @@ const CoachingSessions = () => { // Renamed component
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Coaching Sessions {/* Renamed title */}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+        <Typography variant="h4" component="h1">
+          Coaching Sessions {/* Renamed title */}
+        </Typography>
+        
+        {/* Network Status Indicator */}
+        <Chip
+          icon={isOnline ? <SyncIcon /> : <CloudOffIcon />}
+          label={isOnline ? 'Online' : 'Offline'}
+          color={isOnline ? 'success' : 'warning'}
+          variant="outlined"
+          size="small"
+        />
+        
+        {/* Sync Status Indicator */}
+        {syncStatus && (
+          <Chip
+            icon={syncStatus.status === 'started' ? <CircularProgress size={16} /> : <SyncIcon />}
+            label={syncStatus.status === 'started' ? 'Syncing...' : 
+                   syncStatus.status === 'completed' ? 'Synced' : 'Sync Failed'}
+            color={syncStatus.status === 'completed' ? 'success' : 
+                   syncStatus.status === 'failed' ? 'error' : 'info'}
+            variant="outlined"
+            size="small"
+          />
+        )}
+      </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert 
+          severity={error.includes('offline') || error.includes('cached') ? 'warning' : 'error'} 
+          sx={{ mb: 2 }}
+        >
+          {error}
+        </Alert>
+      )}
       {isLoading && !progressRecords.length && <CircularProgress sx={{ display: 'block', margin: '20px auto' }} />}
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -581,7 +464,17 @@ const CoachingSessions = () => { // Renamed component
                       ) : (
                         // Normal Mode - Collapsed view
                         <>
-                          <TableCell>{record.cr648_lessonplan || "N/A"}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {record.cr648_lessonplan || "N/A"}
+                              {(record._isTemporary || record._createdOffline) && (
+                                <Chip label="Offline" size="small" color="warning" variant="outlined" />
+                              )}
+                              {record._modifiedOffline && (
+                                <Chip label="Modified" size="small" color="info" variant="outlined" />
+                              )}
+                            </Box>
+                          </TableCell>
                           <TableCell>{record.cr648_date ? new Date(record.cr648_date).toLocaleDateString() : "N/A"}</TableCell>
                           <TableCell>{record.cr648_participantsevaluation || "N/A"}</TableCell>
                           <TableCell>{record.cr648_coachname || "N/A"}</TableCell>

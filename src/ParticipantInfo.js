@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useMsal } from "@azure/msal-react";
+import useOfflineData from './hooks/useOfflineData';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -27,6 +27,7 @@ import Container from '@mui/material/Container'; // Added Container import
 import DialogContentText from '@mui/material/DialogContentText'; // Added DialogContentText
 import Grid from '@mui/material/Grid'; // Import Grid
 import Pagination from '@mui/material/Pagination'; // Import Pagination
+import Chip from '@mui/material/Chip'; // Import Chip for offline indicators
 
 // Icons
 import VisibilityIcon from '@mui/icons-material/Visibility'; // Added VisibilityIcon for view mode
@@ -35,6 +36,8 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
 import EditIcon from '@mui/icons-material/Edit'; // Added EditIcon
 import SaveIcon from '@mui/icons-material/Save'; // Added SaveIcon
+import CloudOff from '@mui/icons-material/CloudOff'; // Added offline icon
+import Sync from '@mui/icons-material/Sync'; // Added sync icon
 
 // Dataverse URL (should ideally be in a shared config or passed as prop if different entities use different base URLs)
 const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -160,11 +163,21 @@ const creationFormFields = {
 
 
 function ParticipantInfo() {
-  const { instance, accounts } = useMsal();
-  const [allParticipantData, setAllParticipantData] = useState([]); // Store all fetched data
+  // Use offline data hook
+  const {
+    data: allParticipantData,
+    isLoading,
+    error,
+    isOnline,
+    syncStatus,
+    fetchData,
+    createRecord,
+    updateRecord,
+    deleteRecord,
+    clearError
+  } = useOfflineData(dataverseUrl, 'cr648_participantinformations', 'cr648_participantinformationid');
+
   const [participantData, setParticipantData] = useState([]); // Data to display (can be filtered)
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [expandedParticipantId, setExpandedParticipantId] = useState(null);
   const [isViewMode, setIsViewMode] = useState(false); // Track if we're in view mode vs edit mode
   const [searchTerm, setSearchTerm] = useState('');
@@ -186,135 +199,35 @@ function ParticipantInfo() {
     setSearchTerm(event.target.value);
   }; 
 
-  const fetchParticipantInfo = useCallback(async (showLoading = true) => {
-    if (showLoading) setIsLoading(true);
-    setError(null);
-
-    if (accounts.length === 0) {
-      setError("No authenticated account found. Please sign in.");
-      if (showLoading) setIsLoading(false);
-      return;
-    }
-    if (!instance) {
-      setError("MSAL instance not available.");
-      if (showLoading) setIsLoading(false);
-      return;
-    }
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
-
-    try {
-      const response = await instance.acquireTokenSilent(request);
-      const token = response.accessToken;
-      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations?$orderby=${basicInfoFields.lastName}, ${basicInfoFields.firstName}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-        },
-      });
-
-      if (!apiResponse.ok) {
-        const errData = await apiResponse.json();
-        console.error("Fetch failed with status:", apiResponse.status, errData);
-        setError(errData.error?.message || `Failed to fetch participant information: ${apiResponse.status}`);
-        setAllParticipantData([]); // Clear all data on error
-        setParticipantData([]);
-      } else {
-        const data = await apiResponse.json();
-        setAllParticipantData(data.value || []); // Populate all data
-        setParticipantData(data.value || []);    // Initially display all data
-        if (data.value && data.value.length > 0) {
-          console.log("First participant record from API:", data.value[0]);
-          console.log("Keys of first participant record:", Object.keys(data.value[0]));
-        }
-        // console.log("Fetched participant data from Dataverse:", data); // Optional: can be noisy
-      }
-    } catch (err) {
-      console.error("Operation failed:", err);
-      if (err.name === "InteractionRequiredAuthError" || err.name === "BrowserAuthError") {
-        setError("Token acquisition failed. Please try signing out and signing back in.");
-      } else {
-        setError(err.message || "An unexpected error occurred.");
-      }
-      setAllParticipantData([]); // Clear all data on error
-      setParticipantData([]);
-    } finally {
-      if (showLoading) setIsLoading(false);
-    }
-  }, [accounts, instance]); // Removed dataverseUrl from dependencies as it's constant
-
+  // Initial data fetch
   useEffect(() => {
-    fetchParticipantInfo();
-  }, [fetchParticipantInfo]);
+    fetchData(true, `${basicInfoFields.lastName}, ${basicInfoFields.firstName}`);
+  }, [fetchData]);
 
   const handleDeleteParticipant = useCallback(async (participantIdToDelete) => {
     if (!participantIdToDelete) return;
 
     setIsDeleting(true);
-    setError(null);
-
-    if (accounts.length === 0 || !instance) {
-      setError("Authentication error. Cannot delete participant.");
-      setIsDeleting(false);
-      setParticipantToDelete(null); // Close dialog
-      return;
-    }
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
 
     try {
-      const response = await instance.acquireTokenSilent(request);
-      const token = response.accessToken;
-
-      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations(${participantIdToDelete})`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-        },
-      });
-
-      if (!apiResponse.ok) {
-        // For DELETE, a 204 No Content is success, but other errors might return JSON
-        let errMessage = `Failed to delete participant: ${apiResponse.status}`;
-        if (apiResponse.headers.get("content-type")?.includes("application/json")) {
-            const errData = await apiResponse.json();
-            console.error("Delete failed with status:", apiResponse.status, errData);
-            errMessage = errData.error?.message || errMessage;
-        } else {
-            console.error("Delete failed with status:", apiResponse.status, await apiResponse.text());
-        }
-        setError(errMessage);
-      } else {
-        console.log("Delete successful for participant:", participantIdToDelete);
-        setError(null);
-        // Refetch participant info to update the list
-        fetchParticipantInfo(false); // false to not show loading spinner
-        // If the deleted participant was expanded, collapse it
-        if (expandedParticipantId === participantIdToDelete) {
-            setExpandedParticipantId(null);
-            setEditFormData({});
-            _setOriginalEditData({});
-        }
+      await deleteRecord(participantIdToDelete);
+      
+      // If the deleted participant was expanded, collapse it
+      if (expandedParticipantId === participantIdToDelete) {
+        setExpandedParticipantId(null);
+        setEditFormData({});
+        _setOriginalEditData({});
       }
+      
+      clearError();
+      console.log("Delete successful for participant:", participantIdToDelete);
     } catch (err) {
       console.error("Delete operation failed:", err);
-      setError(err.message || "An unexpected error occurred during delete.");
     } finally {
       setIsDeleting(false);
       setParticipantToDelete(null); // Close dialog
     }
-  }, [accounts, instance, fetchParticipantInfo, expandedParticipantId]);
+  }, [deleteRecord, expandedParticipantId, clearError, _setOriginalEditData]);
 
   const openDeleteConfirmDialog = (participantId) => {
     setParticipantToDelete(participantId);
@@ -327,28 +240,11 @@ function ParticipantInfo() {
 
   const handleUpdateParticipant = useCallback(async (participantIdToUpdate, dataToUpdate) => {
     if (Object.keys(dataToUpdate).length === 0) {
-      // console.log("No changes to update for participant:", participantIdToUpdate);
-      // setError("No changes detected to save."); // Optionally inform user
       return;
     }
     setIsUpdating(true);
-    setError(null);
-
-    if (accounts.length === 0 || !instance) {
-      setError("Authentication error. Cannot update participant.");
-      setIsUpdating(false);
-      return;
-    }
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
 
     try {
-      const response = await instance.acquireTokenSilent(request);
-      const token = response.accessToken;
-
       const payload = { ...dataToUpdate };
       for (const key in payload) {
         const currentValue = payload[key];
@@ -389,38 +285,17 @@ function ParticipantInfo() {
       // Remove OData ETag if present, as it's usually handled by headers or specific mechanisms
       delete payload['@odata.etag'];
 
-
-      // Log the payload
       console.log(`Updating participant ${participantIdToUpdate} with payload:`, JSON.stringify(payload, null, 2));
 
-      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations(${participantIdToUpdate})`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!apiResponse.ok) {
-        const errData = await apiResponse.json();
-        console.error("Update failed with status:", apiResponse.status, errData);
-        setError(errData.error?.message || `Failed to update participant information: ${apiResponse.status}`);
-      } else {
-        console.log("Update successful for participant:", participantIdToUpdate);
-        setError(null);
-        // Optionally, refetch the participant info or update the state to reflect changes
-        fetchParticipantInfo(false); // false to not show loading spinner
-      }
+      await updateRecord(participantIdToUpdate, payload);
+      clearError();
+      console.log("Update successful for participant:", participantIdToUpdate);
     } catch (err) {
       console.error("Update operation failed:", err);
-      setError(err.message || "An unexpected error occurred during update.");
     } finally {
       setIsUpdating(false);
     }
-  }, [accounts, instance, fetchParticipantInfo, originalEditData]);
+  }, [updateRecord, originalEditData, clearError]);
 
 
   const handleSaveChanges = useCallback(async (participantId) => {
@@ -521,23 +396,8 @@ function ParticipantInfo() {
 
   const handleCreateParticipant = useCallback(async () => {
     setIsSubmitting(true);
-    setError(null);
-
-    if (accounts.length === 0 || !instance) {
-      setError("Authentication error. Cannot create participant.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const request = {
-      scopes: [`${dataverseUrl}/.default`],
-      account: accounts[0],
-    };
 
     try {
-      const response = await instance.acquireTokenSilent(request);
-      const token = response.accessToken;
-
       const payload = { ...newParticipant };
       for (const key in payload) {
         const fieldDef = creationFormFields[key]; // Get field definition
@@ -554,55 +414,18 @@ function ParticipantInfo() {
         // Boolean values from select are already handled by the newParticipant state via its specific onChange
       }
 
-      const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/cr648_participantinformations`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!apiResponse.ok) {
-        let errMessage = `Failed to create participant: ${apiResponse.status}`;
-        try {
-            const errData = await apiResponse.json();
-            console.error("Creation failed with status:", apiResponse.status, errData);
-            errMessage = errData.error?.message || errMessage;
-        } catch (jsonError) {
-            // If parsing error response as JSON fails, use the raw text
-            const errText = await apiResponse.text();
-            console.error("Creation failed with status:", apiResponse.status, errText);
-            errMessage = errText || errMessage;
-        }
-        setError(errMessage);
-      } else {
-        // Handle successful creation
-        if (apiResponse.status === 204) { // HTTP 204 No Content
-          console.log("Participant created successfully (204 No Content).");
-        } else { // Assuming HTTP 201 Created or other success with a body
-          try {
-            const createdParticipant = await apiResponse.json();
-            console.log("Participant created successfully:", createdParticipant);
-          } catch (jsonError) {
-            console.warn("Successfully created participant, but response body was not valid JSON or was empty:", jsonError);
-            // Still proceed as if successful, as the main operation completed.
-          }
-        }
-        setError(null);
-        setIsCreateModalOpen(false);
-        setNewParticipant({}); // Reset new participant state
-        fetchParticipantInfo(false); // Refresh list without loading spinner
-      }
+      await createRecord(payload);
+      
+      clearError();
+      setIsCreateModalOpen(false);
+      setNewParticipant({}); // Reset new participant state
+      console.log("Participant created successfully");
     } catch (err) {
       console.error("Creation operation failed:", err);
-      setError(err.message || "An unexpected error occurred during creation.");
     } finally {
       setIsSubmitting(false);
     }
-  }, [accounts, instance, newParticipant, fetchParticipantInfo]);
+  }, [newParticipant, createRecord, clearError]);
 
 
   // Debounced search effect
@@ -649,11 +472,42 @@ function ParticipantInfo() {
   // Render the table
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Participant Information
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+        <Typography variant="h4" component="h1">
+          Participant Information
+        </Typography>
+        
+        {/* Network Status Indicator */}
+        <Chip
+          icon={isOnline ? <Sync /> : <CloudOff />}
+          label={isOnline ? 'Online' : 'Offline'}
+          color={isOnline ? 'success' : 'warning'}
+          variant="outlined"
+          size="small"
+        />
+        
+        {/* Sync Status Indicator */}
+        {syncStatus && (
+          <Chip
+            icon={syncStatus.status === 'started' ? <CircularProgress size={16} /> : <Sync />}
+            label={syncStatus.status === 'started' ? 'Syncing...' : 
+                   syncStatus.status === 'completed' ? 'Synced' : 'Sync Failed'}
+            color={syncStatus.status === 'completed' ? 'success' : 
+                   syncStatus.status === 'failed' ? 'error' : 'info'}
+            variant="outlined"
+            size="small"
+          />
+        )}
+      </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert 
+          severity={error.includes('offline') || error.includes('cached') ? 'warning' : 'error'} 
+          sx={{ mb: 2 }}
+        >
+          {error}
+        </Alert>
+      )}
       
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -706,7 +560,15 @@ function ParticipantInfo() {
                       </IconButton>
                     </TableCell> */}
                     <TableCell component="th" scope="row">
-                      {valueToString(participant[basicInfoFields.firstName])}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {valueToString(participant[basicInfoFields.firstName])}
+                        {(participant._isTemporary || participant._createdOffline) && (
+                          <Chip label="Offline" size="small" color="warning" variant="outlined" />
+                        )}
+                        {participant._modifiedOffline && (
+                          <Chip label="Modified" size="small" color="info" variant="outlined" />
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell>{valueToString(participant[basicInfoFields.lastName])}</TableCell>
                     <TableCell>{formatDate(participant[basicInfoFields.dob])}</TableCell>
@@ -1035,7 +897,7 @@ function ParticipantInfo() {
         <Pagination
           count={Math.ceil(totalRecords / recordsPerPage)}
           page={currentPage}
-          onChange={(event, value) => setCurrentPage(value)}
+          onChange={(_, value) => setCurrentPage(value)}
           color="primary"
           variant="outlined"
           shape="rounded"
