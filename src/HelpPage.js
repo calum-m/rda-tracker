@@ -36,6 +36,18 @@ function HelpPage() {
                 </ListItem>
                 <ListItem sx={{ py: 0.5 }}>
                   <Link 
+                    href="#offline-usage" 
+                    sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById('offline-usage')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    Offline Usage & Sync
+                  </Link>
+                </ListItem>
+                <ListItem sx={{ py: 0.5 }}>
+                  <Link 
                     href="#data-protection" 
                     sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                     onClick={(e) => {
@@ -163,28 +175,296 @@ function HelpPage() {
 
         <Divider sx={{ my: 2 }} />
 
+        <Box sx={{ my: 2 }} id="offline-usage">
+          <Typography variant="h5" component="h2" gutterBottom>
+            Offline Usage & Sync
+          </Typography>
+          <Typography variant="body1" paragraph>
+            <strong>RDA Tracker is designed to work completely offline</strong>, making it perfect for field work where internet connection may be limited or unavailable.
+          </Typography>
+          
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            How Offline Mode Works
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="Automatic Data Download:" 
+                secondary="When you have internet connection, the app automatically downloads the latest participant and session data to your device." 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Full Offline Functionality:" 
+                secondary="All features work without internet: view, edit, create, and delete participants and sessions. Everything is saved locally on your device." 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Intelligent Sync:" 
+                secondary="When internet connection returns, all your offline changes are automatically uploaded to the server with smart conflict resolution." 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Offline Status Indicator
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Look for the status indicator in the top navigation bar:
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="🌐 Online (Green):" 
+                secondary="Connected to internet, data syncs automatically" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="📱 Offline (Red):" 
+                secondary="No internet connection, working with local data" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="🔄 Syncing (Blue):" 
+                secondary="Uploading your changes to the server" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="⏳ X Pending (Orange):" 
+                secondary="Shows number of changes waiting to sync when you're back online" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Perfect for Field Work
+          </Typography>
+          <Typography variant="body1" paragraph>
+            The app is specifically designed for typical RDA field scenarios:
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="🌅 Morning Setup:" 
+                secondary="When you arrive and have 4G signal, open the app to download the latest data automatically" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="🏇 All-Day Offline Work:" 
+                secondary="Work normally throughout the day - create sessions, update participant info, take notes - everything saves locally" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="🌆 Evening Sync:" 
+                secondary="When you return to an area with 4G signal, all your day's work automatically syncs to the server" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="🔒 No Data Loss:" 
+                secondary="Your work is always safe - even if the app closes or device restarts, everything is preserved locally" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Managing Sync Status
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="View Sync Details:" 
+                secondary="Click the status indicator to see detailed sync information, pending changes, and sync history" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Manual Sync:" 
+                secondary="You can trigger a manual sync by clicking 'Sync Now' in the status details (when online)" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Conflict Resolution:" 
+                secondary="If someone else changed the same data while you were offline, the app intelligently merges changes and shows you any conflicts" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Extended Authentication
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Your login session is designed to last all day offline. The app stores authentication tokens securely on your device, so you won't need to log in again during typical field work hours.
+          </Typography>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
         <Box sx={{ my: 2 }} id="data-protection">
           <Typography variant="h5" component="h2" gutterBottom>
             Data Protection & Privacy
           </Typography>
           <Typography variant="body1" paragraph>
-            We take your data privacy seriously. 
+            RDA Tracker includes a comprehensive GDPR compliance toolkit to protect your personal data and give you complete control over your information.
+          </Typography>
+          
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Enhanced Consent Management
           </Typography>
           <List dense>
             <ListItem>
               <ListItemText 
-                primary="Consent Modal:" 
-                secondary="As mentioned, on your first login, you'll be asked for consent regarding data processing. Your consent choice will be saved." 
+                primary="Granular Consent Categories:" 
+                secondary="On first login, you'll see detailed consent options for different types of data: essential functionality, medical information, progress photos, communications, analytics, and data sharing." 
               />
             </ListItem>
             <ListItem>
               <ListItemText 
-                primary="Privacy Policy:" 
+                primary="Parental Consent for Minors:" 
+                secondary="Special protection for participants under 16 - requires explicit parental or guardian consent with additional safeguards." 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Update Preferences Anytime:" 
+                secondary="You can modify your consent preferences at any time through your Privacy Dashboard." 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Your Data Rights (GDPR)
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Access your complete data rights through the{' '}
+            <Link component={RouterLink} to="/privacy-dashboard" sx={{ fontWeight: 'bold' }}>
+              Privacy Dashboard
+            </Link>{' '}
+            in your account:
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="Right of Access:" 
+                secondary="Download a complete copy of all your personal data in a portable format with one click" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Right to Rectification:" 
+                secondary="Correct any inaccurate personal information directly through the participant info page" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Right to Erasure ('Right to be Forgotten'):" 
+                secondary="Permanently delete all your personal data from our systems with a simple request" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Right to Data Portability:" 
+                secondary="Transfer your data to another RDA center or service provider in a machine-readable format" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Right to Restrict Processing:" 
+                secondary="Limit how your data is used while maintaining essential safety records" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Data Retention & Cleanup
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="Automated Retention Policies:" 
+                secondary="Different types of data are automatically deleted after appropriate periods: medical data (7 years), progress photos (2 years), communications (3 years)" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Legal Compliance:" 
+                secondary="Safeguarding and insurance-required records are retained for the minimum legal period, then automatically deleted" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Data Minimization:" 
+                secondary="We only collect and store data that's necessary for RDA services and safety requirements" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Privacy Dashboard Features
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Navigate to{' '}
+            <Link component={RouterLink} to="/privacy-dashboard" sx={{ fontWeight: 'bold' }}>
+              /privacy-dashboard
+            </Link>{' '}
+            to access:
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="Consent Status Overview:" 
+                secondary="See exactly what you've consented to and when, with easy options to update preferences" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Data Overview:" 
+                secondary="View statistics about your stored data including number of sessions, photos, and data retention periods" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="One-Click Data Export:" 
+                secondary="Download all your data in JSON format for portability or backup purposes" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Account Deletion:" 
+                secondary="Complete data removal with confirmation and audit trail (cannot be undone)" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Privacy Policy & Contact
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="Full Privacy Policy:" 
                 secondary={
                   <>
-                    You can review our detailed Privacy Policy at any time. A link to the policy is available in the footer of the application and on the consent modal. You can also access it directly by navigating to the <Link component={RouterLink} to="/privacy-policy">Privacy Policy page</Link>.
+                    Review our complete privacy policy at{' '}
+                    <Link component={RouterLink} to="/privacy-policy">
+                      /privacy-policy
+                    </Link>{' '}
+                    for detailed information about data processing
                   </>
                 } 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Data Protection Officer:" 
+                secondary="Contact privacy@highlandgrouprda.org.uk for any data protection questions or to exercise your rights" 
               />
             </ListItem>
           </List>
@@ -385,19 +665,31 @@ function HelpPage() {
           </Typography>
           <List dense>
             <ListItem>
+              <ListItemText primary="Offline-First Architecture:" secondary="All data is stored locally on your device using IndexedDB, allowing full functionality without internet connection." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="Intelligent Data Sync:" secondary="Bidirectional synchronization with automatic conflict resolution when connectivity returns. Failed sync attempts are automatically retried." />
+            </ListItem>
+            <ListItem>
               <ListItemText primary="Client-Side Pagination:" secondary="Data is paginated on the client side to avoid server limitations and provide smooth navigation through large datasets." />
             </ListItem>
             <ListItem>
               <ListItemText primary="Real-Time Search:" secondary="Search results update instantly as you type, with no need to press enter or click a search button." />
             </ListItem>
             <ListItem>
-              <ListItemText primary="Data Persistence:" secondary="All changes are automatically saved to Microsoft Dataverse, ensuring your data is securely stored and accessible across sessions." />
+              <ListItemText primary="Extended Authentication:" secondary="Login sessions are designed to last all day offline, with secure token storage for field work scenarios." />
             </ListItem>
             <ListItem>
-              <ListItemText primary="Error Handling:" secondary="The system provides clear error messages for any issues and gracefully handles network interruptions or server errors." />
+              <ListItemText primary="Progressive Web App (PWA):" secondary="Install the app on your device for native app-like experience with enhanced offline capabilities and faster loading." />
             </ListItem>
             <ListItem>
-              <ListItemText primary="Consistent Styling:" secondary="The entire application uses Material-UI components for a consistent, professional appearance across all features." />
+              <ListItemText primary="Data Persistence:" secondary="All changes are saved both locally (immediate) and to Microsoft Dataverse (when online), ensuring your data is never lost." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="Enhanced Error Handling:" secondary="The system provides clear error messages and gracefully handles network interruptions, server errors, and offline scenarios." />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="GDPR Compliance Automation:" secondary="Built-in data protection features including automated retention policies, audit trails, and comprehensive user rights management." />
             </ListItem>
             <ListItem>
               <ListItemText primary="Advanced Filtering:" secondary="In Coaching Sessions, you can filter by specific date ranges, exact lesson plans, participant evaluations, and coach names simultaneously." />
@@ -412,30 +704,74 @@ function HelpPage() {
             Troubleshooting
           </Typography>
           <Typography variant="body1" paragraph>
-            <strong>Login Issues:</strong> If you have trouble logging in, please ensure you are using the correct Microsoft account. Try clearing your browser's cache and cookies, or try a different browser.
+            <strong>Login Issues:</strong> If you have trouble logging in, please ensure you are using the correct Microsoft account. Try clearing your browser's cache and cookies, or try a different browser. Your login session is designed to last all day for offline work.
           </Typography>
           <Typography variant="body1" paragraph>
-            <strong>Data Not Saving:</strong> If your changes don't seem to save, check for any error messages displayed on the screen. Ensure all required fields are filled correctly. Look for the save confirmation or error alerts that appear after attempting to save.
+            <strong>Data Not Saving:</strong> Don't worry - your data is saved! All changes are immediately saved locally on your device. If you're offline, check the sync status indicator - your changes will upload automatically when you're back online.
           </Typography>
           <Typography variant="body1" paragraph>
-            <strong>Page Not Loading:</strong> Check your internet connection. If the problem persists, the application might be temporarily unavailable.
+            <strong>Offline Mode Issues:</strong> If the app shows you're offline but you think you have internet, try refreshing the page. The offline indicator should update automatically. All functionality works offline, so you can continue working normally.
           </Typography>
           <Typography variant="body1" paragraph>
-            <strong>Pagination Not Working:</strong> If you can't navigate between pages, try refreshing the browser. The system automatically manages pagination for datasets larger than 10 records.
+            <strong>Sync Problems:</strong> If changes aren't syncing when you're back online, click the sync status indicator and try 'Sync Now'. Check for any error messages. Failed syncs are automatically retried, so your data won't be lost.
           </Typography>
           <Typography variant="body1" paragraph>
-            <strong>Search Not Responding:</strong> If search results don't update as you type, check your internet connection. The search function works in real-time and requires an active connection.
+            <strong>Page Not Loading:</strong> The app works offline, so page loading issues are rare. Try refreshing the browser. If installed as a PWA, try opening from your app list instead of the browser.
           </Typography>
           <Typography variant="body1" paragraph>
-            <strong>Modal Dialogs Not Opening:</strong> If create/edit forms don't appear when clicking buttons, try refreshing the page or check if your browser is blocking popups for this site.
+            <strong>Search Not Responding:</strong> Search works offline using your local data, so no internet connection is required. If search isn't working, try refreshing the page.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            <strong>Privacy Dashboard Issues:</strong> If you can't access your privacy dashboard or data export features, ensure you're logged in and try refreshing the page. Contact privacy@highlandgrouprda.org.uk for data protection assistance.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            <strong>PWA Installation Issues:</strong> If the app won't install as a PWA, try using Chrome or Edge browsers. Look for the install icon in the address bar. Some browsers require HTTPS for PWA installation.
           </Typography>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="body1" paragraph sx={{ mt: 3, fontStyle: 'italic' }}>
-          If you need further assistance, please contact the system administrator.
+          <strong>For Technical Support:</strong> Contact the system administrator<br/>
+          <strong>For Data Protection Questions:</strong> Contact privacy@highlandgrouprda.org.uk<br/>
+          <strong>For GDPR Rights:</strong> Use your Privacy Dashboard or contact our Data Protection Officer
         </Typography>
+
+        <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3, color: 'primary.main' }}>
+          New in Version 2.1.0
+        </Typography>
+        <List dense>
+          <ListItem>
+            <ListItemText 
+              primary="🔄 Complete Offline Functionality" 
+              secondary="Work all day without internet connection - perfect for field locations" 
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemText 
+              primary="🔐 GDPR Compliance Toolkit" 
+              secondary="Full data protection rights management with privacy dashboard" 
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemText 
+              primary="📱 Enhanced PWA Features" 
+              secondary="Improved app installation and offline performance" 
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemText 
+              primary="🎯 Intelligent Sync" 
+              secondary="Automatic background synchronization with conflict resolution" 
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemText 
+              primary="🛡️ Extended Authentication" 
+              secondary="All-day offline sessions designed for field work scenarios" 
+            />
+          </ListItem>
+        </List>
 
         {/* Back to Top Button */}
         <Fab 
