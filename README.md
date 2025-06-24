@@ -1,18 +1,22 @@
 # RDA Tracker Application (v2.1.0)
 
 > **🌐 Live Demo**: [https://tracker.highlandgrouprda.org.uk](https://tracker.highlandgrouprda.org.uk)  
-> **📱 PWA Support**: Install directly from your browser as a desktop/mobile app
+> **📱 PWA Support**: Install directly from your browser as a desktop/mobile app  
+> **🔄 Offline Ready**: Full functionality without internet connection  
+> **🔐 GDPR Compliant**: Complete data protection toolkit built-in
 
-This React application is designed to track and manage information for an RDA (Riding for the Disabled Association) group. It provides comprehensive functionalities for managing participant information and coaching sessions, leveraging Azure Active Directory for authentication and Microsoft Dataverse as the backend data store. The application features a modern, responsive design built with Material-UI components throughout, and is deployed as an Azure Static Web App.
+This React application is designed to track and manage information for an RDA (Riding for the Disabled Association) group. It provides comprehensive functionalities for managing participant information and coaching sessions, leveraging Azure Active Directory for authentication and Microsoft Dataverse as the backend data store. The application features a modern, responsive design built with Material-UI components throughout, complete offline capabilities, and enterprise-grade GDPR compliance.
 
-> **🎯 Portfolio Project**: This application demonstrates enterprise-level React development with Azure integration, modern UI patterns, and comprehensive security implementation.
+> **🎯 Portfolio Project**: This application demonstrates enterprise-level React development with Azure integration, offline-first architecture, GDPR compliance, modern UI patterns, and comprehensive security implementation.
 
 ## ✨ Current Features (v2.1.0)
 
 ### 🔐 **Authentication & Security**
-*   **Secure Authentication**: Azure AD integration via MSAL for secure user login
-*   **Data Protection Consent**: First-time users see a consent modal for GDPR compliance
-*   **Privacy Policy**: Dedicated privacy policy page accessible throughout the app
+*   **Secure Authentication**: Azure AD integration via MSAL with extended token lifetime for offline use
+*   **GDPR Compliance Toolkit**: Complete data protection framework with granular consent management
+*   **Privacy Dashboard**: Users can manage their data rights, export data, and control consent preferences (`/privacy-dashboard`)
+*   **Data Protection**: Comprehensive audit logging, automated retention policies, and "right to be forgotten"
+*   **Admin Controls**: GDPR compliance management panel for administrators (`/gdpr-admin`)
 
 ### 👥 **Participant Information Management** (`/participant-info`)
 *   **Paginated Data View**: Modern table display with 10 participants per page
@@ -50,51 +54,96 @@ This React application is designed to track and manage information for an RDA (R
     *   Detailed feature explanations and troubleshooting guide
 
 ### 🔧 **Technical Features**
-*   **Client-Side Pagination**: Efficient data handling without server limitations
-*   **Progressive Web App (PWA)**: Installable on desktop and mobile devices
-*   **Real-Time Updates**: Instant data synchronization with Dataverse
+*   **Offline-First Architecture**: Complete functionality without internet connection using IndexedDB
+*   **Intelligent Sync**: Automatic background synchronization when connectivity returns
+*   **Progressive Web App (PWA)**: Installable on desktop and mobile devices with offline support
+*   **Real-Time Status**: Offline indicator showing sync status and pending changes
+*   **Extended Token Lifetime**: MSAL configured for all-day offline usage scenarios
+*   **Service Worker**: App shell caching and offline API request handling
 *   **Form Validation**: Required field checking with clear error messages
 *   **Confirmation Dialogs**: Safety measures for all destructive actions
 
+### 🔄 **Offline Capabilities**
+*   **Complete Offline Functionality**: Full CRUD operations work without internet
+*   **Automatic Data Sync**: Intelligent bidirectional synchronization with conflict resolution
+*   **Offline Status Indicator**: Real-time display of connection status and pending changes
+*   **Background Sync**: Automatic upload when connectivity returns
+*   **Data Persistence**: IndexedDB storage ensures no data loss
+*   **Retry Logic**: Failed sync attempts automatically retried with exponential backoff
+*   **Perfect for Field Use**: Designed for morning-to-afternoon offline scenarios
+
+### 🔐 **GDPR Compliance Features**
+*   **Granular Consent Management**: Separate consent for medical data, photos, communications, analytics
+*   **Data Subject Rights**: Complete implementation of all GDPR rights
+    *   Right of Access (data export)
+    *   Right to Rectification (data correction)
+    *   Right to Erasure ("right to be forgotten")
+    *   Right to Restrict Processing
+    *   Right to Data Portability
+*   **Privacy Dashboard**: User-friendly interface for managing data rights
+*   **Automated Data Retention**: Configurable policies with automatic deletion
+*   **Comprehensive Audit Trail**: Every data access and modification logged
+*   **Minor Protection**: Special handling for under-16 users with parental consent
+*   **Admin Tools**: Complete compliance management for data protection officers
+
 ## 🛠️ Tech Stack
 
-*   **Frontend Framework**: React 18 with React Router for navigation
+*   **Frontend Framework**: React 19 with React Router v7 for navigation
 *   **Authentication**: Microsoft Authentication Library (MSAL) for React (`@azure/msal-react`, `@azure/msal-browser`)
-*   **Data Storage**: Microsoft Dataverse (accessed via OData Web API)
-*   **UI Framework**: Material-UI (MUI) - Complete component library (`@mui/material`, `@emotion/react`, `@emotion/styled`)
+*   **Data Storage**: 
+    *   **Online**: Microsoft Dataverse (accessed via OData Web API)
+    *   **Offline**: IndexedDB with `idb` library for local storage
+*   **UI Framework**: Material-UI (MUI) v5 - Complete component library (`@mui/material`, `@emotion/react`, `@emotion/styled`)
 *   **Icons**: Material-UI Icons (`@mui/icons-material`)
 *   **Styling**: 
     *   Primary: Material-UI theming and `sx` prop styling
     *   Legacy: Some Tailwind CSS components (being phased out)
 *   **State Management**: React Hooks (useState, useEffect, useCallback)
-*   **HTTP Client**: Fetch API for Dataverse integration
+*   **Offline Storage**: IndexedDB with intelligent sync queuing and conflict resolution
+*   **HTTP Client**: Fetch API for Dataverse integration with offline fallbacks
+*   **Service Worker**: Custom implementation for offline caching and background sync
+*   **GDPR Compliance**: Custom toolkit with audit logging and data retention automation
 *   **Configuration**: Environment variables via `.env` file
 *   **Deployment**: Azure Static Web Apps with automatic CI/CD
-*   **PWA Features**: Service worker and manifest for app-like experience
+*   **PWA Features**: Enhanced service worker, manifest, and offline capabilities
 
 ## 📁 Project Structure
 
 *   **`public/`**: Static assets and configuration
     *   `index.html`: Main HTML file with CSP security headers
+    *   `sw.js`: Service worker for offline functionality and background sync
     *   `staticwebapp.config.json`: Azure Static Web Apps routing configuration
-    *   `manifest.json`: PWA manifest for installable app features
+    *   `manifest.json`: PWA manifest with enhanced offline features
     *   `RDALOGO.svg`: Application logo and branding assets
 *   **`src/`**: React application source code
-    *   `App.js`: Main application component with routing, authentication, and layout
-    *   `authConfig.js`: MSAL configuration for Azure AD integration
-    *   **Components**:
-        *   `ParticipantInfo.js`: Complete participant management with view/edit modes
-        *   `CoachingSessions.js`: Coaching session management (renamed from LessonEvaluations)
-        *   `DataverseCaller.js`: Legacy component (being phased out)
-        *   `ConsentModal.js`: GDPR consent dialog
+    *   `App.js`: Main application component with routing, authentication, offline integration
+    *   `authConfig.js`: Enhanced MSAL configuration with extended token lifetime
+    *   `index.js`: Application bootstrap with service worker registration
+    *   **Core Components**:
+        *   `ParticipantInfo.js`: Complete participant management with offline support
+        *   `CoachingSessions.js`: Coaching session management with sync capabilities
         *   `HelpPage.js`: Comprehensive help documentation with navigation
         *   `LandingPage.js`: Application home page
         *   `PrivacyPolicyPage.js`: Privacy policy display
         *   `LoggedOutPage.js`: Post-logout confirmation page
-    *   `theme.js`: Material-UI theme configuration and styling
-    *   `index.css`: Global styles and base CSS
+    *   **UI Components** (`src/components/`):
+        *   `OfflineIndicator.js`: Real-time sync status and offline indicator
+    *   **Offline System**:
+        *   `offlineStorage.js`: IndexedDB wrapper with GDPR-compliant data storage
+        *   `syncService.js`: Intelligent bidirectional sync with conflict resolution
+        *   `offlineDataService.js`: Offline-first data abstraction layer
+    *   **GDPR Toolkit** (`src/gdpr/`):
+        *   `GDPRConsentModal.js`: Enhanced consent management with granular controls
+        *   `PrivacyDashboard.js`: User data rights management interface
+        *   `GDPRAdminPanel.js`: Administrative compliance tools
+        *   `gdprService.js`: Complete GDPR compliance automation
+        *   `DataDeletedPage.js`: Confirmation page for data deletion
+    *   **Configuration**:
+        *   `theme.js`: Material-UI theme configuration and styling
+        *   `index.css`: Global styles and base CSS
 *   **Configuration Files**:
-    *   `package.json`: Dependencies and scripts (version 2.1.0)
+    *   `CLAUDE.md`: Developer guidance for Claude Code instances
+    *   `package.json`: Dependencies and scripts (version 2.1.0) with offline libraries
     *   `tailwind.config.js`: Tailwind CSS configuration (legacy)
     *   `postcss.config.js`: PostCSS configuration for CSS processing
 
@@ -195,14 +244,20 @@ The application supports PWA installation on:
 - ✅ **Content Security Policy (CSP)** implemented
 - ✅ **HTTPS-only** in production
 - ✅ **Optimized build** with code splitting
-- ✅ **Service worker** for offline capabilities
+- ✅ **Advanced Service Worker** for comprehensive offline capabilities
+- ✅ **GDPR Compliance** with automated data protection
+- ✅ **Extended Authentication** for all-day offline usage
+- ✅ **Intelligent Caching** with background sync
 
 ## 📚 Documentation & Resources
 
 ### Application Help
 - **In-app Help**: Navigate to `/help` for comprehensive user guide
+- **Privacy Dashboard**: Access `/privacy-dashboard` to manage your data rights
+- **GDPR Admin Panel**: Administrators can access `/gdpr-admin` for compliance management
 - **Table of Contents**: Quick navigation to specific features
 - **Troubleshooting**: Common issues and solutions included
+- **Offline Usage**: Built-in guidance for working without internet connection
 
 ### External Resources
 *   [Create React App Documentation](https://facebook.github.io/create-react-app/docs/getting-started)
@@ -211,20 +266,35 @@ The application supports PWA installation on:
 *   [Microsoft Dataverse Web API](https://docs.microsoft.com/powerapps/developer/data-platform/webapi/overview)
 *   [Material-UI Documentation](https://mui.com/material-ui/getting-started/)
 *   [Azure Static Web Apps Documentation](https://docs.microsoft.com/azure/static-web-apps/)
+*   [IndexedDB API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
+*   [GDPR Compliance Guide](https://gdpr.eu/)
+*   [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 
 ## 🔄 Version History
 
-- **v2.1.0** (June 2025): Current version with complete Material-UI redesign, pagination, dual view/edit modes, enhanced help system
-- **v0.1.0** (Initial release): Basic functionality with mixed styling approaches
+- **v2.1.0** (December 2024): **Major Update**
+  - ✨ **Complete Offline Capabilities**: Full offline-first architecture with IndexedDB storage
+  - 🔐 **GDPR Compliance Toolkit**: Comprehensive data protection framework
+  - 🔄 **Intelligent Sync**: Bidirectional sync with conflict resolution and retry logic
+  - 📱 **Enhanced PWA**: Advanced service worker with background sync
+  - 🛡️ **Extended Authentication**: All-day offline token management
+  - 📊 **Privacy Dashboard**: Complete user data rights management
+  - ⚙️ **Admin Tools**: GDPR compliance management panel
+  - 🎨 **Material-UI Redesign**: Complete UI overhaul with responsive design
+  - 📄 **Dual Mode Operations**: View/edit modes with pagination
+- **v0.1.0** (Initial release): Basic functionality with online-only capabilities
 
 ## 🤝 Contributing
 
 We welcome contributions! Please ensure:
 - ✅ Follow Material-UI design patterns
-- ✅ Maintain responsive design principles
-- ✅ Add appropriate error handling
+- ✅ Maintain offline-first architecture principles
+- ✅ Respect GDPR compliance requirements
+- ✅ Add appropriate error handling and offline fallbacks
 - ✅ Update documentation as needed
-- ✅ Test on multiple devices and browsers
+- ✅ Test on multiple devices and browsers, including offline scenarios
+- ✅ Ensure accessibility standards are maintained
+- ✅ Follow the coding patterns established in `CLAUDE.md`
 
 ## 📧 Contact & License
 
@@ -235,16 +305,26 @@ We welcome contributions! Please ensure:
 ## 🚀 Key Features Summary
 
 ### What Makes RDA Tracker v2.1.0 Special:
-- **🎯 Dual-Mode Interface**: Every data table supports both view-only and edit modes
-- **📱 Mobile-First Design**: Responsive interface that works seamlessly on all devices
-- **⚡ Real-Time Operations**: Instant search, client-side pagination, and live data updates
-- **🔒 Enterprise Security**: Azure AD integration with GDPR-compliant consent management
-- **📊 Comprehensive Data Management**: Full CRUD operations for participants and coaching sessions
-- **🎨 Professional UI**: Consistent Material-UI design throughout the application
-- **📚 Self-Service Help**: Built-in comprehensive help system with navigation
+- **🔄 Offline-First Architecture**: Complete functionality without internet connection - perfect for field use
+- **🔐 Enterprise GDPR Compliance**: Full data protection toolkit with automated retention and user rights management
+- **🎯 Intelligent Sync**: Seamless background synchronization with conflict resolution when connectivity returns
+- **📱 Mobile-First Design**: Responsive PWA that works seamlessly on all devices, installable as a native app
+- **⚡ Real-Time Operations**: Instant search, client-side pagination, and live status indicators
+- **🛡️ Enterprise Security**: Extended Azure AD authentication designed for all-day offline scenarios
+- **📊 Comprehensive Data Management**: Full CRUD operations with offline persistence and sync queuing
+- **🎨 Professional UI**: Consistent Material-UI design with real-time offline status indicators
+- **📚 Self-Service Help**: Built-in comprehensive help system with offline usage guidance
+- **⚖️ Legal Compliance**: Complete GDPR toolkit with privacy dashboard, audit trails, and automated data retention
+
+### Perfect for Field Work:
+✅ **Morning**: Download latest data when you have 4G signal  
+✅ **All Day**: Work completely offline with full app functionality  
+✅ **Evening**: Automatic sync when you return to 4G coverage  
+✅ **No Data Loss**: Everything saved locally with intelligent conflict resolution  
 
 ---
 
-**RDA Tracker v2.1.0** - *Last updated: 11 June 2025*
+**RDA Tracker v2.1.0** - *Last updated: 24 December 2024*
 
-*Built with ❤️ for the Riding for the Disabled Association community*
+*Built with ❤️ for the Riding for the Disabled Association community*  
+*Enterprise-ready • Offline-capable • GDPR-compliant*
