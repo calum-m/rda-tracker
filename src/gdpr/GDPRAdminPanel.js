@@ -31,8 +31,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  IconButton,
-  Tooltip
+  IconButton
 } from '@mui/material';
 import {
   AdminPanelSettings,
@@ -45,7 +44,6 @@ import {
   CheckCircle,
   Error,
   Refresh,
-  FilterList,
   Search
 } from '@mui/icons-material';
 import { gdprService } from './gdprService';
@@ -56,7 +54,6 @@ const GDPRAdminPanel = () => {
   const [users, setUsers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [retentionReport, setRetentionReport] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [showRetentionDialog, setShowRetentionDialog] = useState(false);
@@ -65,10 +62,9 @@ const GDPRAdminPanel = () => {
 
   useEffect(() => {
     loadAdminData();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAdminData = async () => {
-    setLoading(true);
     try {
       const [usersData, logsData, retentionData] = await Promise.all([
         getAllUsers(),
@@ -81,8 +77,6 @@ const GDPRAdminPanel = () => {
       setRetentionReport(retentionData);
     } catch (error) {
       console.error('Error loading admin data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

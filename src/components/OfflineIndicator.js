@@ -19,8 +19,6 @@ import {
   CloudOff, 
   Cloud, 
   Sync, 
-  CheckCircle, 
-  Error, 
   Schedule,
   PersonAdd,
   PersonRemove,

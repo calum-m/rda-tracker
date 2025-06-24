@@ -18,11 +18,8 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
   CircularProgress,
-  Paper,
-  IconButton,
-  Tooltip
+  Paper
 } from '@mui/material';
 import {
   Security,
@@ -35,7 +32,6 @@ import {
   CheckCircle,
   Cancel,
   Info,
-  Warning,
   Email
 } from '@mui/icons-material';
 import { useMsal } from '@azure/msal-react';
@@ -57,7 +53,7 @@ const PrivacyDashboard = () => {
 
   useEffect(() => {
     loadUserData();
-  }, [account]);
+  }, [account]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadUserData = async () => {
     if (!account) return;

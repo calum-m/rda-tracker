@@ -5,7 +5,6 @@ import { AppBar, Toolbar, Button, Typography, Container, Box, ThemeProvider, Css
 import MenuIcon from '@mui/icons-material/Menu';
 import { CacheProvider } from '@emotion/react';
 import ConsentModal from "./ConsentModal";
-import GDPRConsentModal from "./gdpr/GDPRConsentModal";
 import PrivacyDashboard from "./gdpr/PrivacyDashboard";
 import GDPRAdminPanel from "./gdpr/GDPRAdminPanel";
 import DataDeletedPage from "./gdpr/DataDeletedPage";
