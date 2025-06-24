@@ -5,6 +5,10 @@ import { AppBar, Toolbar, Button, Typography, Container, Box, ThemeProvider, Css
 import MenuIcon from '@mui/icons-material/Menu';
 import { CacheProvider } from '@emotion/react';
 import ConsentModal from "./ConsentModal";
+import GDPRConsentModal from "./gdpr/GDPRConsentModal";
+import PrivacyDashboard from "./gdpr/PrivacyDashboard";
+import GDPRAdminPanel from "./gdpr/GDPRAdminPanel";
+import DataDeletedPage from "./gdpr/DataDeletedPage";
 import CoachingSessions from "./CoachingSessions"; // Renamed import
 import ParticipantInfo from "./ParticipantInfo";
 import HelpPage from "./HelpPage";
@@ -12,8 +16,10 @@ import LandingPage from "./LandingPage";
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import LoggedOutPage from './LoggedOutPage';
+import OfflineIndicator from './components/OfflineIndicator';
 import { InteractionStatus } from "@azure/msal-browser";
 import { theme, emotionCache } from './theme'; // Import theme and emotionCache
+import { syncService } from './syncService'; // Import sync service
 
 const loginRequest = {
   scopes: ["openid", "profile", "User.Read"],
@@ -203,6 +209,17 @@ const AppWithEmotionCache = () => {
     }
   }, [account, inProgress, dataverseBaseUrl, instance, fetchConsentFromDataverse]);
 
+  // Initialize sync service when account is available
+  useEffect(() => {
+    if (account && instance) {
+      syncService.init(instance);
+      // Perform initial sync when user logs in
+      if (navigator.onLine) {
+        syncService.performSync();
+      }
+    }
+  }, [account, instance]);
+
   const handleMobileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -334,6 +351,11 @@ const AppWithEmotionCache = () => {
                     <Box sx={{ flexGrow: 1 }}>
                       <img src={process.env.PUBLIC_URL + '/RDALOGO.svg'} alt="RDA Tracker Logo" style={{ height: '40px', marginRight: '10px' }} />
                     </Box>
+                    {accounts.length > 0 && (
+                      <Box sx={{ mr: 2 }}>
+                        <OfflineIndicator />
+                      </Box>
+                    )}
                     <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                       {accounts.length > 0 && (
                         <>
@@ -389,6 +411,9 @@ const AppWithEmotionCache = () => {
                         <Route path="/coaching-sessions" element={<CoachingSessions />} /> {/* Renamed path and component */}
                         <Route path="/participant-info" element={<ParticipantInfo />} />
                         <Route path="/help" element={<HelpPage />} />
+                        <Route path="/privacy-dashboard" element={<PrivacyDashboard />} />
+                        <Route path="/gdpr-admin" element={<GDPRAdminPanel />} />
+                        <Route path="/data-deleted" element={<DataDeletedPage />} />
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                       </Routes>

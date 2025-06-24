@@ -18,7 +18,22 @@ export const msalConfig = {
     postLogoutRedirectUri: postLogoutRedirectUri, // Added post-logout redirect
   },
   cache: {
-    cacheLocation: "localStorage", // or "localStorage"
+    cacheLocation: "localStorage", // Use localStorage for persistence across sessions
     storeAuthStateInCookie: false,
+    // Extended token lifetime for offline scenarios
+    tokenRenewalOffsetSeconds: 300, // Renew 5 minutes before expiry
+  },
+  system: {
+    allowNativeBroker: false, // Disable for web apps
+    loggerOptions: {
+      loggerCallback: (level, message, containsPii) => {
+        if (containsPii) return;
+        console.log(`MSAL [${level}]: ${message}`);
+      },
+      logLevel: 3, // Info level
+    },
+    // Configure for longer offline periods
+    networkTimeout: 10000, // 10 second timeout
+    navigationTimeout: 30000, // 30 second navigation timeout
   },
 };

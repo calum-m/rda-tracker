@@ -53,10 +53,10 @@
       "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Coaching Session Plans",
+      "name": "Coaching Sessions",
       "short_name": "Sessions",
-      "description": "Access coaching session plans",
-      "url": "/coaching-session-plans",
+      "description": "Access coaching sessions",
+      "url": "/coaching-sessions",
       "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
     }
   ]

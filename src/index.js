@@ -9,6 +9,35 @@ import { BrowserRouter as Router } from 'react-router-dom'; // Import Router
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
+// Register service worker for offline capabilities
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('SW registered: ', registration);
+        
+        // Listen for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                // New update available
+                console.log('New content is available; please refresh.');
+              } else {
+                // Content is cached for offline use
+                console.log('Content is cached for offline use.');
+              }
+            }
+          });
+        });
+      })
+      .catch((registrationError) => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
+
 msalInstance.initialize().then(() => {
   // handleRedirectPromise should be called after initialize an resolved
   msalInstance.handleRedirectPromise().then(() => {
