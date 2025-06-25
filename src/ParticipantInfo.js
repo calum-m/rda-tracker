@@ -39,8 +39,8 @@ import SaveIcon from '@mui/icons-material/Save'; // Added SaveIcon
 import CloudOff from '@mui/icons-material/CloudOff'; // Added offline icon
 import Sync from '@mui/icons-material/Sync'; // Added sync icon
 
-// Dataverse URL (should ideally be in a shared config or passed as prop if different entities use different base URLs)
-const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
+// Dataverse URL from environment variable
+const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL;
 
 // Helper function to format date strings
 const formatDate = (dateString) => {
@@ -175,7 +175,7 @@ function ParticipantInfo() {
     updateRecord,
     deleteRecord,
     clearError
-  } = useOfflineData(dataverseUrl, 'cr648_participantinformations', 'cr648_participantinformationid');
+  } = useOfflineData(dataverseUrl, 'cr648_new_participantinfos', 'cr648_new_participantinfoid');
 
   const [participantData, setParticipantData] = useState([]); // Data to display (can be filtered)
   const [expandedParticipantId, setExpandedParticipantId] = useState(null);

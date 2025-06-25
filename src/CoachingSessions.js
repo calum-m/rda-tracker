@@ -27,8 +27,8 @@ import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIco
 import Pagination from '@mui/material/Pagination'; // Import Pagination
 import useOfflineData from './hooks/useOfflineData'; // Import offline data hook
 
-// Replace this with your Dataverse URL
-const dataverseUrl = "https://orgdbcfb9bc.crm11.dynamics.com";
+// Dataverse URL from environment variable
+const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL;
 
 const CoachingSessions = () => { // Renamed component
   // Use offline data hook instead of manual API calls
@@ -43,7 +43,7 @@ const CoachingSessions = () => { // Renamed component
     updateRecord,
     deleteRecord,
     clearError
-  } = useOfflineData(dataverseUrl, 'cr648_lessonevaluations', 'cr648_lessonevaluationid');
+  } = useOfflineData(dataverseUrl, 'cr648_new_lessonevaluations', 'cr648_new_lessonevaluationid');
 
   const [progressRecords, setProgressRecords] = useState([]);
   const [currentFilteredRecords, setCurrentFilteredRecords] = useState([]); // Holds all records matching filters, before pagination
