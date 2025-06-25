@@ -81,7 +81,7 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           // Save to offline storage
           if (entitySet === 'cr648_coachingsessions') {
             await offlineStorage.saveCoachingSessions(records);
-          } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants') {
+          } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants' || entitySet === 'cr648_participantinformations') {
             await offlineStorage.saveParticipants(records);
           }
           
@@ -105,7 +105,7 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         
         if (entitySet === 'cr648_coachingsessions') {
           offlineData = await offlineStorage.getCoachingSessions();
-        } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants') {
+        } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants' || entitySet === 'cr648_participantinformations') {
           offlineData = await offlineStorage.getParticipants();
         }
         
@@ -134,7 +134,7 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         
         if (entitySet === 'cr648_coachingsessions') {
           offlineData = await offlineStorage.getCoachingSessions();
-        } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants') {
+        } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants' || entitySet === 'cr648_participantinformations') {
           offlineData = await offlineStorage.getParticipants();
         }
         
