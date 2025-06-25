@@ -41,7 +41,7 @@ class SyncService {
 
     const account = accounts[0];
     const dataverseRequest = {
-      scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || ""].filter(scope => scope),
+      scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || "https://orgdbcfb9bc.crm11.dynamics.com/.default"].filter(scope => scope),
       account: account,
     };
 

@@ -39,8 +39,15 @@ import SaveIcon from '@mui/icons-material/Save'; // Added SaveIcon
 import CloudOff from '@mui/icons-material/CloudOff'; // Added offline icon
 import Sync from '@mui/icons-material/Sync'; // Added sync icon
 
-// Dataverse URL from environment variable
-const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL;
+// Dataverse URL from environment variable with fallback
+const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL || "https://orgdbcfb9bc.crm11.dynamics.com";
+
+// Debug logging for production
+console.log("ParticipantInfo - Environment:", {
+  REACT_APP_DATAVERSE_URL: process.env.REACT_APP_DATAVERSE_URL,
+  dataverseUrl: dataverseUrl,
+  hostname: window.location.hostname
+});
 
 // Helper function to format date strings
 const formatDate = (dateString) => {

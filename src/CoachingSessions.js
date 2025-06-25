@@ -27,8 +27,15 @@ import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIco
 import Pagination from '@mui/material/Pagination'; // Import Pagination
 import useOfflineData from './hooks/useOfflineData'; // Import offline data hook
 
-// Dataverse URL from environment variable
-const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL;
+// Dataverse URL from environment variable with fallback
+const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL || "https://orgdbcfb9bc.crm11.dynamics.com";
+
+// Debug logging for production
+console.log("CoachingSessions - Environment:", {
+  REACT_APP_DATAVERSE_URL: process.env.REACT_APP_DATAVERSE_URL,
+  dataverseUrl: dataverseUrl,
+  hostname: window.location.hostname
+});
 
 const CoachingSessions = () => { // Renamed component
   // Use offline data hook instead of manual API calls

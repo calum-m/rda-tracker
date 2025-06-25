@@ -57,6 +57,14 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           url += `?$orderby=${orderBy}`;
         }
 
+        console.log('useOfflineData - Fetching from:', url, {
+          dataverseUrl,
+          entitySet,
+          hasToken: !!token,
+          isOnline,
+          hostname: window.location.hostname
+        });
+
         const apiResponse = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -80,7 +88,15 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           setData(records);
           return records;
         } else {
-          throw new Error(`API request failed: ${apiResponse.status}`);
+          const errorText = await apiResponse.text().catch(() => 'Unknown error');
+          console.error('useOfflineData - API request failed:', {
+            status: apiResponse.status,
+            statusText: apiResponse.statusText,
+            url,
+            errorText,
+            headers: Object.fromEntries(apiResponse.headers.entries())
+          });
+          throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
         }
       } else {
         // Fallback to offline storage
@@ -102,7 +118,15 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         return offlineData || [];
       }
     } catch (err) {
-      console.error('Fetch failed, trying offline storage:', err);
+      console.error('useOfflineData - Fetch failed, trying offline storage:', {
+        error: err.message,
+        stack: err.stack,
+        dataverseUrl,
+        entitySet,
+        isOnline,
+        accountsLength: accounts.length,
+        hostname: window.location.hostname
+      });
       
       // Fallback to offline storage on error
       try {

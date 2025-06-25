@@ -25,7 +25,7 @@ const loginRequest = {
 };
 
 const dataverseRequest = {
-  scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || ""].filter(scope => scope),
+  scopes: [process.env.REACT_APP_DATAVERSE_SCOPE || "https://orgdbcfb9bc.crm11.dynamics.com/.default"].filter(scope => scope),
 };
 
 const AppWithEmotionCache = () => {
