@@ -137,7 +137,7 @@ class SyncService {
     // Download participants
     try {
       const participantsResponse = await fetch(
-        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo?$select=cr648_new_participantinfoid,cr648_new_name,cr648_new_dateofbirth,cr648_new_address,cr648_new_emergencycontact,cr648_new_notes,cr648_new_medicalinfo`,
+        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformationsrmations?$select=cr648_participantinformationsrmationId,cr648_firstname,cr648_lastname,cr648_dateofbirth,cr648_emailaddress,cr648_phonenumber`,
         {
           method: "GET",
           headers: {
@@ -167,7 +167,7 @@ class SyncService {
     // Download coaching sessions
     try {
       const sessionsResponse = await fetch(
-        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions?$select=cr648_new_lessonevaluationid,cr648_new_date,cr648_new_lessonplan,cr648_new_participantevaluation,cr648_new_coachname,cr648_new_participantid,cr648_new_notes`,
+        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_lessonevaluations?$select=cr648_lessonevaluationid,cr648_date,cr648_lessonplan,cr648_participantevaluation,cr648_coachname,cr648_participantid,cr648_notes`,
         {
           method: "GET",
           headers: {
@@ -244,12 +244,12 @@ class SyncService {
 
     if (action === 'CREATE' || data.isOfflineCreated) {
       // Create new participant
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations`;
       method = 'POST';
       
       // Remove offline metadata and temporary ID
       const cleanData = { ...data };
-      delete cleanData.cr648_new_participantinfoid;
+      delete cleanData.cr648_participantinformationId;
       delete cleanData.lastModified;
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
@@ -257,12 +257,12 @@ class SyncService {
       body = JSON.stringify(cleanData);
     } else {
       // Update existing participant
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo(${data.cr648_new_participantinfoid})`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations(${data.cr648_participantinformationId})`;
       method = 'PATCH';
       
       // Remove metadata for update
       const cleanData = { ...data };
-      delete cleanData.cr648_new_participantinfoid;
+      delete cleanData.cr648_participantinformationId;
       delete cleanData.lastModified;
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
@@ -296,15 +296,15 @@ class SyncService {
           const newId = newIdMatch[1];
           
           // Update local storage with server ID
-          const updatedData = { ...data, cr648_new_participantinfoid: newId };
+          const updatedData = { ...data, cr648_participantinformationId: newId };
           delete updatedData.isOfflineCreated;
           delete updatedData.needsSync;
           
           await offlineStorage.saveParticipant(updatedData, true);
           
           // Remove old offline record
-          if (data.cr648_new_participantinfoid.startsWith('offline_')) {
-            await offlineStorage.deleteParticipant(data.cr648_new_participantinfoid, true);
+          if (data.cr648_participantinformationId.startsWith('offline_')) {
+            await offlineStorage.deleteParticipant(data.cr648_participantinformationId, true);
           }
         }
       }
@@ -314,7 +314,7 @@ class SyncService {
   // Sync participant deletion
   async syncParticipantDelete(item, token) {
     const response = await fetch(
-      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo(${item.entityId})`,
+      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations(${item.entityId})`,
       {
         method: 'DELETE',
         headers: {
@@ -338,22 +338,22 @@ class SyncService {
     let url, method, body;
 
     if (action === 'CREATE' || data.isOfflineCreated) {
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_lessonevaluations`;
       method = 'POST';
       
       const cleanData = { ...data };
-      delete cleanData.cr648_new_lessonevaluationid;
+      delete cleanData.cr648_lessonevaluationid;
       delete cleanData.lastModified;
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
       
       body = JSON.stringify(cleanData);
     } else {
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions(${data.cr648_new_lessonevaluationid})`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_lessonevaluations(${data.cr648_lessonevaluationid})`;
       method = 'PATCH';
       
       const cleanData = { ...data };
-      delete cleanData.cr648_new_lessonevaluationid;
+      delete cleanData.cr648_lessonevaluationid;
       delete cleanData.lastModified;
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
@@ -386,14 +386,14 @@ class SyncService {
         if (newIdMatch) {
           const newId = newIdMatch[1];
           
-          const updatedData = { ...data, cr648_new_lessonevaluationid: newId };
+          const updatedData = { ...data, cr648_lessonevaluationid: newId };
           delete updatedData.isOfflineCreated;
           delete updatedData.needsSync;
           
           await offlineStorage.saveCoachingSession(updatedData, true);
           
-          if (data.cr648_new_lessonevaluationid.startsWith('offline_')) {
-            await offlineStorage.deleteCoachingSession(data.cr648_new_lessonevaluationid, true);
+          if (data.cr648_lessonevaluationid.startsWith('offline_')) {
+            await offlineStorage.deleteCoachingSession(data.cr648_lessonevaluationid, true);
           }
         }
       }
@@ -403,7 +403,7 @@ class SyncService {
   // Sync session deletion
   async syncSessionDelete(item, token) {
     const response = await fetch(
-      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions(${item.entityId})`,
+      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_lessonevaluations(${item.entityId})`,
       {
         method: 'DELETE',
         headers: {
