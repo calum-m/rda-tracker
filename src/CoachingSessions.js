@@ -50,7 +50,7 @@ const CoachingSessions = () => { // Renamed component
     updateRecord,
     deleteRecord,
     clearError
-  } = useOfflineData(dataverseUrl, 'cr648_coachingsessions', 'cr648_lessonevaluationid');
+  } = useOfflineData(dataverseUrl, 'cr648_lessonevaluations', 'cr648_lessonevaluationid');
 
   const [progressRecords, setProgressRecords] = useState([]);
   const [currentFilteredRecords, setCurrentFilteredRecords] = useState([]); // Holds all records matching filters, before pagination
