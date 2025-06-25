@@ -137,7 +137,7 @@ class SyncService {
     // Download participants
     try {
       const participantsResponse = await fetch(
-        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformationsrmations?$select=cr648_participantinformationsrmationId,cr648_firstname,cr648_lastname,cr648_dateofbirth,cr648_emailaddress,cr648_phonenumber`,
+        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations?$select=cr648_participantinformationId,cr648_firstname,cr648_lastname,cr648_dateofbirth,cr648_emailaddress,cr648_phonenumber`,
         {
           method: "GET",
           headers: {
