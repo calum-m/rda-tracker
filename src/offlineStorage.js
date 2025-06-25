@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 
 // Database configuration
 const DB_NAME = 'RDATrackerDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORES = {
   PARTICIPANTS: 'participants',
   SESSIONS: 'coaching_sessions',
@@ -18,20 +18,21 @@ export const initDB = async () => {
         // Participants store
         if (!db.objectStoreNames.contains(STORES.PARTICIPANTS)) {
           const participantsStore = db.createObjectStore(STORES.PARTICIPANTS, {
-            keyPath: 'cr648_new_participantinfoid'
+            keyPath: 'cr648_participantinformationId'
           });
-          participantsStore.createIndex('name', 'cr648_new_name');
-          participantsStore.createIndex('dateOfBirth', 'cr648_new_dateofbirth');
+          participantsStore.createIndex('firstName', 'cr648_firstname');
+          participantsStore.createIndex('lastName', 'cr648_lastname');
+          participantsStore.createIndex('dateOfBirth', 'cr648_dateofbirth');
           participantsStore.createIndex('lastModified', 'lastModified');
         }
 
         // Coaching sessions store
         if (!db.objectStoreNames.contains(STORES.SESSIONS)) {
           const sessionsStore = db.createObjectStore(STORES.SESSIONS, {
-            keyPath: 'cr648_new_lessonevaluationid'
+            keyPath: 'cr648_lessonevaluationid'
           });
-          sessionsStore.createIndex('date', 'cr648_new_date');
-          sessionsStore.createIndex('participantId', 'cr648_new_participantid');
+          sessionsStore.createIndex('date', 'cr648_date');
+          sessionsStore.createIndex('participantId', 'cr648_participantid');
           sessionsStore.createIndex('lastModified', 'lastModified');
         }
 
@@ -134,13 +135,13 @@ class OfflineStorage {
       const participantWithMeta = {
         ...participant,
         lastModified: Date.now(),
-        isOfflineCreated: !participant.cr648_new_participantinfoid && !isFromServer,
+        isOfflineCreated: !participant.cr648_participantinformationId && !isFromServer,
         needsSync: !isFromServer
       };
 
       // Generate temporary ID for offline-created participants
-      if (!participantWithMeta.cr648_new_participantinfoid) {
-        participantWithMeta.cr648_new_participantinfoid = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      if (!participantWithMeta.cr648_participantinformationId) {
+        participantWithMeta.cr648_participantinformationId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
 
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
@@ -151,9 +152,9 @@ class OfflineStorage {
       if (!isFromServer) {
         await this.addToSyncQueue({
           type: 'PARTICIPANT_SAVE',
-          entityId: participantWithMeta.cr648_new_participantinfoid,
+          entityId: participantWithMeta.cr648_participantinformationId,
           data: participantWithMeta,
-          action: participant.cr648_new_participantinfoid?.startsWith('offline_') ? 'CREATE' : 'UPDATE'
+          action: participant.cr648_participantinformationId?.startsWith('offline_') ? 'CREATE' : 'UPDATE'
         });
       }
 
@@ -206,12 +207,12 @@ class OfflineStorage {
       const sessionWithMeta = {
         ...session,
         lastModified: Date.now(),
-        isOfflineCreated: !session.cr648_new_lessonevaluationid && !isFromServer,
+        isOfflineCreated: !session.cr648_lessonevaluationid && !isFromServer,
         needsSync: !isFromServer
       };
 
-      if (!sessionWithMeta.cr648_new_lessonevaluationid) {
-        sessionWithMeta.cr648_new_lessonevaluationid = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      if (!sessionWithMeta.cr648_lessonevaluationid) {
+        sessionWithMeta.cr648_lessonevaluationid = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
 
       const tx = this.db.transaction(STORES.SESSIONS, 'readwrite');
@@ -221,9 +222,9 @@ class OfflineStorage {
       if (!isFromServer) {
         await this.addToSyncQueue({
           type: 'SESSION_SAVE',
-          entityId: sessionWithMeta.cr648_new_lessonevaluationid,
+          entityId: sessionWithMeta.cr648_lessonevaluationid,
           data: sessionWithMeta,
-          action: session.cr648_new_lessonevaluationid?.startsWith('offline_') ? 'CREATE' : 'UPDATE'
+          action: session.cr648_lessonevaluationid?.startsWith('offline_') ? 'CREATE' : 'UPDATE'
         });
       }
 
@@ -399,6 +400,23 @@ class OfflineStorage {
     // This will be called by the sync service
     if (window.syncService) {
       window.syncService.performSync();
+    }
+  }
+
+  // Batch save operations for API responses
+  async saveParticipants(participants, isFromServer = true) {
+    if (!Array.isArray(participants)) return;
+    
+    for (const participant of participants) {
+      await this.saveParticipant(participant, isFromServer);
+    }
+  }
+
+  async saveCoachingSessions(sessions, isFromServer = true) {
+    if (!Array.isArray(sessions)) return;
+    
+    for (const session of sessions) {
+      await this.saveCoachingSession(session, isFromServer);
     }
   }
 
