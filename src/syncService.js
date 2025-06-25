@@ -137,7 +137,7 @@ class SyncService {
     // Download participants
     try {
       const participantsResponse = await fetch(
-        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations?$select=cr648_participantinformationId,cr648_firstname,cr648_lastname,cr648_dateofbirth,cr648_emailaddress,cr648_phonenumber`,
+        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations?$select=cr648_participantinformationid,cr648_firstname,cr648_lastname,cr648_dateofbirth,cr648_emailaddress,cr648_phonenumber`,
         {
           method: "GET",
           headers: {
@@ -249,7 +249,7 @@ class SyncService {
       
       // Remove offline metadata and temporary ID
       const cleanData = { ...data };
-      delete cleanData.cr648_participantinformationId;
+      delete cleanData.cr648_participantinformationid;
       delete cleanData.lastModified;
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
@@ -257,12 +257,12 @@ class SyncService {
       body = JSON.stringify(cleanData);
     } else {
       // Update existing participant
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations(${data.cr648_participantinformationId})`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinformations(${data.cr648_participantinformationid})`;
       method = 'PATCH';
       
       // Remove metadata for update
       const cleanData = { ...data };
-      delete cleanData.cr648_participantinformationId;
+      delete cleanData.cr648_participantinformationid;
       delete cleanData.lastModified;
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
@@ -296,15 +296,15 @@ class SyncService {
           const newId = newIdMatch[1];
           
           // Update local storage with server ID
-          const updatedData = { ...data, cr648_participantinformationId: newId };
+          const updatedData = { ...data, cr648_participantinformationid: newId };
           delete updatedData.isOfflineCreated;
           delete updatedData.needsSync;
           
           await offlineStorage.saveParticipant(updatedData, true);
           
           // Remove old offline record
-          if (data.cr648_participantinformationId.startsWith('offline_')) {
-            await offlineStorage.deleteParticipant(data.cr648_participantinformationId, true);
+          if (data.cr648_participantinformationid.startsWith('offline_')) {
+            await offlineStorage.deleteParticipant(data.cr648_participantinformationid, true);
           }
         }
       }

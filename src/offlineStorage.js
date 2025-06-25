@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 
 // Database configuration
 const DB_NAME = 'RDATrackerDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORES = {
   PARTICIPANTS: 'participants',
   SESSIONS: 'coaching_sessions',
@@ -18,7 +18,7 @@ export const initDB = async () => {
         // Participants store
         if (!db.objectStoreNames.contains(STORES.PARTICIPANTS)) {
           const participantsStore = db.createObjectStore(STORES.PARTICIPANTS, {
-            keyPath: 'cr648_participantinformationId'
+            keyPath: 'cr648_participantinformationid'
           });
           participantsStore.createIndex('firstName', 'cr648_firstname');
           participantsStore.createIndex('lastName', 'cr648_lastname');
@@ -135,13 +135,13 @@ class OfflineStorage {
       const participantWithMeta = {
         ...participant,
         lastModified: Date.now(),
-        isOfflineCreated: !participant.cr648_participantinformationId && !isFromServer,
+        isOfflineCreated: !participant.cr648_participantinformationid && !isFromServer,
         needsSync: !isFromServer
       };
 
       // Generate temporary ID for offline-created participants
-      if (!participantWithMeta.cr648_participantinformationId) {
-        participantWithMeta.cr648_participantinformationId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      if (!participantWithMeta.cr648_participantinformationid) {
+        participantWithMeta.cr648_participantinformationid = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
 
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
@@ -152,9 +152,9 @@ class OfflineStorage {
       if (!isFromServer) {
         await this.addToSyncQueue({
           type: 'PARTICIPANT_SAVE',
-          entityId: participantWithMeta.cr648_participantinformationId,
+          entityId: participantWithMeta.cr648_participantinformationid,
           data: participantWithMeta,
-          action: participant.cr648_participantinformationId?.startsWith('offline_') ? 'CREATE' : 'UPDATE'
+          action: participant.cr648_participantinformationid?.startsWith('offline_') ? 'CREATE' : 'UPDATE'
         });
       }
 

@@ -123,7 +123,7 @@ const basicInfoFields = {
   firstName: 'cr648_firstname',
   lastName: 'cr648_lastname',
   dob: 'cr648_dateofbirth',
-  id: 'cr648_participantinformationId' // Updated to match actual Dataverse field with capital I
+  id: 'cr648_participantinformationid' // Updated to match actual Dataverse field (lowercase)
 };
 
 // Define fields for the creation form
@@ -140,7 +140,7 @@ const creationFormFields = {
   'cr648_addressline2': { label: 'Address Line 2', type: 'text', required: false, gridSpan: 12 },
   'cr648_addressline3': { label: 'Address Line 3', type: 'text', required: false, gridSpan: 12 },
   'cr648_postalcode': { label: 'Postal Code', type: 'text', required: false, gridSpan: 6 },
-  'cr648_guardiansnorparent': { label: 'Guardian/Parent', type: 'select', required: false, gridSpan: 6, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
+  'cr648_guardianorparent': { label: 'Guardian/Parent', type: 'select', required: false, gridSpan: 6, options: [{value: true, label: 'Yes'}, {value: false, label: 'No'}] },
   'cr648_guardianphone': { label: 'Guardian Phone', type: 'tel', required: false, gridSpan: 6 },
   'cr648_heightincm': { label: 'Height (cm)', type: 'number', required: false, gridSpan: 6 },
   'cr648_heightinftandin': { label: 'Height (ft/in)', type: 'text', required: false, gridSpan: 6 },
@@ -182,7 +182,7 @@ function ParticipantInfo() {
     updateRecord,
     deleteRecord,
     clearError
-  } = useOfflineData(dataverseUrl, 'cr648_participantinformations', 'cr648_participantinformationId');
+  } = useOfflineData(dataverseUrl, 'cr648_participantinformations', 'cr648_participantinformationid');
 
   const [participantData, setParticipantData] = useState([]); // Data to display (can be filtered)
   const [expandedParticipantId, setExpandedParticipantId] = useState(null);
