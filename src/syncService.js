@@ -137,7 +137,7 @@ class SyncService {
     // Download participants
     try {
       const participantsResponse = await fetch(
-        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_participantinfos?$select=cr648_new_participantinfoid,cr648_new_name,cr648_new_dateofbirth,cr648_new_address,cr648_new_emergencycontact,cr648_new_notes,cr648_new_medicalinfo`,
+        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo?$select=cr648_new_participantinfoid,cr648_new_name,cr648_new_dateofbirth,cr648_new_address,cr648_new_emergencycontact,cr648_new_notes,cr648_new_medicalinfo`,
         {
           method: "GET",
           headers: {
@@ -167,7 +167,7 @@ class SyncService {
     // Download coaching sessions
     try {
       const sessionsResponse = await fetch(
-        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_lessonevaluations?$select=cr648_new_lessonevaluationid,cr648_new_date,cr648_new_lessonplan,cr648_new_participantevaluation,cr648_new_coachname,cr648_new_participantid,cr648_new_notes`,
+        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions?$select=cr648_new_lessonevaluationid,cr648_new_date,cr648_new_lessonplan,cr648_new_participantevaluation,cr648_new_coachname,cr648_new_participantid,cr648_new_notes`,
         {
           method: "GET",
           headers: {
@@ -244,7 +244,7 @@ class SyncService {
 
     if (action === 'CREATE' || data.isOfflineCreated) {
       // Create new participant
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_participantinfos`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo`;
       method = 'POST';
       
       // Remove offline metadata and temporary ID
@@ -257,7 +257,7 @@ class SyncService {
       body = JSON.stringify(cleanData);
     } else {
       // Update existing participant
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_participantinfos(${data.cr648_new_participantinfoid})`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo(${data.cr648_new_participantinfoid})`;
       method = 'PATCH';
       
       // Remove metadata for update
@@ -314,7 +314,7 @@ class SyncService {
   // Sync participant deletion
   async syncParticipantDelete(item, token) {
     const response = await fetch(
-      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_participantinfos(${item.entityId})`,
+      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_participantinfo(${item.entityId})`,
       {
         method: 'DELETE',
         headers: {
@@ -338,7 +338,7 @@ class SyncService {
     let url, method, body;
 
     if (action === 'CREATE' || data.isOfflineCreated) {
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_lessonevaluations`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions`;
       method = 'POST';
       
       const cleanData = { ...data };
@@ -349,7 +349,7 @@ class SyncService {
       
       body = JSON.stringify(cleanData);
     } else {
-      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_lessonevaluations(${data.cr648_new_lessonevaluationid})`;
+      url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions(${data.cr648_new_lessonevaluationid})`;
       method = 'PATCH';
       
       const cleanData = { ...data };
@@ -403,7 +403,7 @@ class SyncService {
   // Sync session deletion
   async syncSessionDelete(item, token) {
     const response = await fetch(
-      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_new_lessonevaluations(${item.entityId})`,
+      `${this.dataverseBaseUrl}/api/data/v9.2/cr648_coachingsessions(${item.entityId})`,
       {
         method: 'DELETE',
         headers: {
