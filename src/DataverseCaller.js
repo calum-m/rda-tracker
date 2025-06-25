@@ -115,7 +115,7 @@ const DataverseCaller = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [accounts, instance, dataverseUrl, recordsPerPage, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName]); // Removed page from dependencies since we handle pagination client-side
+  }, [accounts, instance, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName]); // Removed page from dependencies since we handle pagination client-side
 
   useEffect(() => {
     fetchRecords();

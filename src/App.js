@@ -219,6 +219,32 @@ const AppWithEmotionCache = () => {
     }
   }, [account, instance]);
 
+  // Global online/offline event handlers to ensure sync always triggers
+  useEffect(() => {
+    const handleAppOnline = async () => {
+      if (account && instance && navigator.onLine) {
+        console.log('App-level online event detected, triggering sync');
+        try {
+          await syncService.performSync();
+        } catch (error) {
+          console.error('Sync failed after coming online:', error);
+        }
+      }
+    };
+
+    const handleAppOffline = () => {
+      console.log('App-level offline event detected');
+    };
+
+    window.addEventListener('online', handleAppOnline);
+    window.addEventListener('offline', handleAppOffline);
+
+    return () => {
+      window.removeEventListener('online', handleAppOnline);
+      window.removeEventListener('offline', handleAppOffline);
+    };
+  }, [account, instance]);
+
   const handleMobileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };

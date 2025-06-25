@@ -1,7 +1,7 @@
 // Custom hook for offline-aware data operations
 import { useState, useEffect, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
-import offlineStorage from '../utils/offlineStorage';
+import { offlineStorage } from '../offlineStorage';
 
 const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
   const { instance, accounts } = useMsal();
@@ -185,20 +185,12 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           _createdOffline: true
         };
 
-        // Save to local storage
+        // Save to local storage (automatically queues for sync)
         if (entitySet === 'cr648_lessonevaluations') {
           await offlineStorage.saveCoachingSession(tempRecord);
         } else if (entitySet === 'cr648_participantinformations') {
           await offlineStorage.saveParticipant(tempRecord);
         }
-
-        // Queue operation for sync
-        await offlineStorage.queueOperation({
-          type: 'CREATE',
-          entitySet,
-          data: recordData,
-          tempId
-        });
 
         // Refresh data
         await fetchData(false);
@@ -270,21 +262,11 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           _modifiedOffline: true
         };
 
-        // Update local storage
+        // Update local storage (automatically queues for sync)
         if (entitySet === 'cr648_lessonevaluations') {
           await offlineStorage.saveCoachingSession(updatedRecord);
         } else if (entitySet === 'cr648_participantinformations') {
           await offlineStorage.saveParticipant(updatedRecord);
-        }
-
-        // Queue operation for sync (only if not a temp record)
-        if (!recordId.toString().startsWith('temp_')) {
-          await offlineStorage.queueOperation({
-            type: 'UPDATE',
-            entitySet,
-            recordId,
-            data: recordData
-          });
         }
 
         // Refresh data
@@ -344,20 +326,11 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           throw new Error(`Delete failed: ${apiResponse.status}`);
         }
       } else {
-        // Delete locally and queue for sync
+        // Delete locally (automatically queues for sync)
         if (entitySet === 'cr648_lessonevaluations') {
           await offlineStorage.deleteCoachingSession(recordId);
         } else if (entitySet === 'cr648_participantinformations') {
           await offlineStorage.deleteParticipant(recordId);
-        }
-
-        // Queue operation for sync (only if not a temp record)
-        if (!recordId.toString().startsWith('temp_')) {
-          await offlineStorage.queueOperation({
-            type: 'DELETE',
-            entitySet,
-            recordId
-          });
         }
 
         // Refresh data

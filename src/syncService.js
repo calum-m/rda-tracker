@@ -77,34 +77,53 @@ class SyncService {
   async performSync() {
     if (this.isSyncing) {
       console.log('Sync already in progress');
-      return;
+      return { success: false, message: 'Sync already in progress' };
     }
 
     if (!navigator.onLine) {
       console.log('Device is offline, skipping sync');
-      return;
+      return { success: false, message: 'Device is offline' };
+    }
+
+    if (!this.msalInstance) {
+      console.error('MSAL instance not initialized, cannot sync');
+      return { success: false, message: 'MSAL instance not initialized' };
     }
 
     this.isSyncing = true;
+    this.lastSyncAttempt = new Date();
     this.notifyListeners({ isOnline: true, isSyncing: true, pendingCount: 0 });
 
     try {
       console.log('Starting sync process...');
       
+      // Get pending items count for logging
+      const pendingItems = await offlineStorage.getPendingSyncItems();
+      console.log(`Found ${pendingItems.length} pending items to sync`);
+      
       // Step 1: Download latest data from server
+      console.log('Step 1: Downloading latest data from server...');
       await this.downloadLatestData();
       
       // Step 2: Upload pending changes
+      console.log('Step 2: Uploading pending changes...');
       await this.uploadPendingChanges();
       
       console.log('Sync completed successfully');
+      return { success: true, message: 'Sync completed successfully' };
       
     } catch (error) {
       console.error('Sync failed:', error);
+      return { success: false, message: `Sync failed: ${error.message}`, error };
     } finally {
       this.isSyncing = false;
-      const syncStatus = await offlineStorage.getSyncStatus();
-      this.notifyListeners({ ...syncStatus, isSyncing: false });
+      try {
+        const syncStatus = await offlineStorage.getSyncStatus();
+        this.notifyListeners({ ...syncStatus, isSyncing: false });
+      } catch (statusError) {
+        console.error('Failed to get sync status after sync:', statusError);
+        this.notifyListeners({ isOnline: navigator.onLine, isSyncing: false, pendingCount: 0 });
+      }
     }
   }
 
