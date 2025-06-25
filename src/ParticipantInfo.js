@@ -182,7 +182,7 @@ function ParticipantInfo() {
     updateRecord,
     deleteRecord,
     clearError
-  } = useOfflineData(dataverseUrl, 'cr648_participantinfos', 'cr648_participantinfoid');
+  } = useOfflineData(dataverseUrl, 'cr648_participantinfo', 'cr648_participantinfoid');
 
   const [participantData, setParticipantData] = useState([]); // Data to display (can be filtered)
   const [expandedParticipantId, setExpandedParticipantId] = useState(null);
