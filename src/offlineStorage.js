@@ -131,16 +131,6 @@ class OfflineStorage {
   async saveParticipant(participant, isFromServer = false) {
     await this.init();
     try {
-      // Log participant data structure for debugging
-      console.log('saveParticipant - Participant data:', {
-        hasId: !!participant.cr648_participantinformationid,
-        id: participant.cr648_participantinformationid,
-        keys: Object.keys(participant),
-        isFromServer,
-        hostname: window.location.hostname
-      });
-
-      // Add metadata for offline tracking
       const participantWithMeta = {
         ...participant,
         lastModified: Date.now(),
@@ -148,42 +138,14 @@ class OfflineStorage {
         needsSync: !isFromServer
       };
 
-      // Ensure we have a valid key for IndexedDB
-      // Generate temporary ID for offline-created participants or when key is missing
-      if (!participantWithMeta.cr648_participantinformationid || 
-          participantWithMeta.cr648_participantinformationid === null || 
-          participantWithMeta.cr648_participantinformationid === undefined) {
-        console.log('saveParticipant - Generating offline ID for participant without valid key');
+      if (!participantWithMeta.cr648_participantinformationid) {
         participantWithMeta.cr648_participantinformationid = `offline_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      } else {
-        // Ensure the ID is a string (Dataverse GUIDs might have type issues)
-        participantWithMeta.cr648_participantinformationid = String(participantWithMeta.cr648_participantinformationid);
       }
 
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
       const store = tx.objectStore(STORES.PARTICIPANTS);
-      
-      // Additional validation before saving
-      if (!participantWithMeta.cr648_participantinformationid) {
-        throw new Error('Participant missing required ID field for IndexedDB storage');
-      }
+      await store.put(participantWithMeta);
 
-      // Debug: Check if the key can be accessed properly
-      const keyValue = participantWithMeta['cr648_participantinformationid'];
-      console.log('saveParticipant - Key validation:', {
-        keyExists: 'cr648_participantinformationid' in participantWithMeta,
-        keyValue: keyValue,
-        keyType: typeof keyValue,
-        hasOwnProperty: participantWithMeta.hasOwnProperty('cr648_participantinformationid'),
-        keyPathTest: participantWithMeta.cr648_participantinformationid
-      });
-
-      // Create a clean object to avoid any prototype or property descriptor issues
-      const cleanParticipant = JSON.parse(JSON.stringify(participantWithMeta));
-      
-      await store.put(cleanParticipant);
-
-      // Add to sync queue if not from server
       if (!isFromServer) {
         await this.addToSyncQueue({
           type: 'PARTICIPANT_SAVE',
@@ -195,14 +157,7 @@ class OfflineStorage {
 
       return participantWithMeta;
     } catch (error) {
-      console.error('Error saving participant to IndexedDB:', {
-        error: error.message,
-        stack: error.stack,
-        participantKeys: participant ? Object.keys(participant) : 'no participant',
-        participantId: participant?.cr648_participantinformationid,
-        isFromServer,
-        hostname: window.location.hostname
-      });
+      console.error('Error saving participant to IndexedDB:', error);
       throw error;
     }
   }
