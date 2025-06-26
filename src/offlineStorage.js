@@ -1,8 +1,8 @@
 import { openDB } from 'idb';
 
 // Database configuration
-const DB_NAME = 'RDATrackerDB';
-const DB_VERSION = 4; // Increment version to force schema recreation
+const DB_NAME = 'RDATrackerDB_v5'; // Change name to force complete recreation
+const DB_VERSION = 1;
 const STORES = {
   PARTICIPANTS: 'participants',
   SESSIONS: 'coaching_sessions',
@@ -135,16 +135,6 @@ class OfflineStorage {
   async saveParticipant(participant, isFromServer = false) {
     await this.init();
     try {
-      // Debug: Check the raw participant object
-      console.log('saveParticipant DEBUG:', {
-        hasId: !!participant.cr648_participantinformationid,
-        idValue: participant.cr648_participantinformationid,
-        idType: typeof participant.cr648_participantinformationid,
-        participantKeys: Object.keys(participant),
-        participantType: typeof participant,
-        isFromServer
-      });
-
       const participantWithMeta = {
         ...participant,
         lastModified: Date.now(),
@@ -156,45 +146,9 @@ class OfflineStorage {
         participantWithMeta.cr648_participantinformationid = `offline_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       }
 
-      // Debug: Test key path access
-      const keyTest = participantWithMeta.cr648_participantinformationid;
-      console.log('Key path test:', {
-        directAccess: keyTest,
-        bracketAccess: participantWithMeta['cr648_participantinformationid'],
-        hasOwnProp: participantWithMeta.hasOwnProperty('cr648_participantinformationid'),
-        keyInObj: 'cr648_participantinformationid' in participantWithMeta
-      });
-
-      // Try creating a completely clean object
-      const cleanParticipant = {};
-      for (const [key, value] of Object.entries(participantWithMeta)) {
-        cleanParticipant[key] = value;
-      }
-
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
       const store = tx.objectStore(STORES.PARTICIPANTS);
-      
-      // Test: Try a super simple object first
-      const testObj = {
-        cr648_participantinformationid: 'test-123'
-      };
-      
-      try {
-        console.log('Testing basic object save...');
-        await store.put(testObj);
-        console.log('Basic test object saved successfully');
-        await store.delete('test-123'); // Clean up test
-        
-        // Now try the clean participant
-        await store.put(cleanParticipant);
-        console.log('Clean participant saved successfully');
-      } catch (keyPathError) {
-        console.log('Even basic test failed:', keyPathError.message);
-        console.log('Store keyPath:', store.keyPath);
-        console.log('Store name:', store.name);
-        
-        throw new Error(`IndexedDB store configuration issue: ${keyPathError.message}`);
-      }
+      await store.put(participantWithMeta);
 
       if (!isFromServer) {
         await this.addToSyncQueue({
