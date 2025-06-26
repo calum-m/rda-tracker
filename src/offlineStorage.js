@@ -131,6 +131,15 @@ class OfflineStorage {
   async saveParticipant(participant, isFromServer = false) {
     await this.init();
     try {
+      // Log participant data structure for debugging
+      console.log('saveParticipant - Participant data:', {
+        hasId: !!participant.cr648_participantinformationid,
+        id: participant.cr648_participantinformationid,
+        keys: Object.keys(participant),
+        isFromServer,
+        hostname: window.location.hostname
+      });
+
       // Add metadata for offline tracking
       const participantWithMeta = {
         ...participant,
@@ -139,13 +148,23 @@ class OfflineStorage {
         needsSync: !isFromServer
       };
 
-      // Generate temporary ID for offline-created participants
-      if (!participantWithMeta.cr648_participantinformationid) {
-        participantWithMeta.cr648_participantinformationid = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Ensure we have a valid key for IndexedDB
+      // Generate temporary ID for offline-created participants or when key is missing
+      if (!participantWithMeta.cr648_participantinformationid || 
+          participantWithMeta.cr648_participantinformationid === null || 
+          participantWithMeta.cr648_participantinformationid === undefined) {
+        console.log('saveParticipant - Generating offline ID for participant without valid key');
+        participantWithMeta.cr648_participantinformationid = `offline_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       }
 
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
       const store = tx.objectStore(STORES.PARTICIPANTS);
+      
+      // Additional validation before saving
+      if (!participantWithMeta.cr648_participantinformationid) {
+        throw new Error('Participant missing required ID field for IndexedDB storage');
+      }
+      
       await store.put(participantWithMeta);
 
       // Add to sync queue if not from server
@@ -160,7 +179,14 @@ class OfflineStorage {
 
       return participantWithMeta;
     } catch (error) {
-      console.error('Error saving participant to IndexedDB:', error);
+      console.error('Error saving participant to IndexedDB:', {
+        error: error.message,
+        stack: error.stack,
+        participantKeys: participant ? Object.keys(participant) : 'no participant',
+        participantId: participant?.cr648_participantinformationid,
+        isFromServer,
+        hostname: window.location.hostname
+      });
       throw error;
     }
   }
