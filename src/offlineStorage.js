@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 
 // Database configuration
 const DB_NAME = 'RDATrackerDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4; // Increment version to force schema recreation
 const STORES = {
   PARTICIPANTS: 'participants',
   SESSIONS: 'coaching_sessions',
@@ -17,6 +17,7 @@ export const initDB = async () => {
       upgrade(db) {
         // Participants store
         if (!db.objectStoreNames.contains(STORES.PARTICIPANTS)) {
+          console.log('Creating participants store with keyPath: cr648_participantinformationid');
           const participantsStore = db.createObjectStore(STORES.PARTICIPANTS, {
             keyPath: 'cr648_participantinformationid'
           });
@@ -24,6 +25,9 @@ export const initDB = async () => {
           participantsStore.createIndex('lastName', 'cr648_lastname');
           participantsStore.createIndex('dateOfBirth', 'cr648_dateofbirth');
           participantsStore.createIndex('lastModified', 'lastModified');
+          console.log('Participants store created successfully');
+        } else {
+          console.log('Participants store already exists');
         }
 
         // Coaching sessions store
@@ -170,22 +174,26 @@ class OfflineStorage {
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
       const store = tx.objectStore(STORES.PARTICIPANTS);
       
+      // Test: Try a super simple object first
+      const testObj = {
+        cr648_participantinformationid: 'test-123'
+      };
+      
       try {
+        console.log('Testing basic object save...');
+        await store.put(testObj);
+        console.log('Basic test object saved successfully');
+        await store.delete('test-123'); // Clean up test
+        
+        // Now try the clean participant
         await store.put(cleanParticipant);
+        console.log('Clean participant saved successfully');
       } catch (keyPathError) {
-        console.log('Clean object failed, trying minimal object:', keyPathError.message);
+        console.log('Even basic test failed:', keyPathError.message);
+        console.log('Store keyPath:', store.keyPath);
+        console.log('Store name:', store.name);
         
-        // Last resort: create minimal object with just essential fields
-        const minimalParticipant = {
-          cr648_participantinformationid: String(participantWithMeta.cr648_participantinformationid),
-          cr648_firstname: participantWithMeta.cr648_firstname || '',
-          cr648_lastname: participantWithMeta.cr648_lastname || '',
-          lastModified: Date.now(),
-          needsSync: !isFromServer,
-          _originalData: JSON.stringify(participant) // Keep original for sync
-        };
-        
-        await store.put(minimalParticipant);
+        throw new Error(`IndexedDB store configuration issue: ${keyPathError.message}`);
       }
 
       if (!isFromServer) {
