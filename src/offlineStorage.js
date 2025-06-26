@@ -155,6 +155,9 @@ class OfflineStorage {
           participantWithMeta.cr648_participantinformationid === undefined) {
         console.log('saveParticipant - Generating offline ID for participant without valid key');
         participantWithMeta.cr648_participantinformationid = `offline_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      } else {
+        // Ensure the ID is a string (Dataverse GUIDs might have type issues)
+        participantWithMeta.cr648_participantinformationid = String(participantWithMeta.cr648_participantinformationid);
       }
 
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
@@ -164,8 +167,21 @@ class OfflineStorage {
       if (!participantWithMeta.cr648_participantinformationid) {
         throw new Error('Participant missing required ID field for IndexedDB storage');
       }
+
+      // Debug: Check if the key can be accessed properly
+      const keyValue = participantWithMeta['cr648_participantinformationid'];
+      console.log('saveParticipant - Key validation:', {
+        keyExists: 'cr648_participantinformationid' in participantWithMeta,
+        keyValue: keyValue,
+        keyType: typeof keyValue,
+        hasOwnProperty: participantWithMeta.hasOwnProperty('cr648_participantinformationid'),
+        keyPathTest: participantWithMeta.cr648_participantinformationid
+      });
+
+      // Create a clean object to avoid any prototype or property descriptor issues
+      const cleanParticipant = JSON.parse(JSON.stringify(participantWithMeta));
       
-      await store.put(participantWithMeta);
+      await store.put(cleanParticipant);
 
       // Add to sync queue if not from server
       if (!isFromServer) {
