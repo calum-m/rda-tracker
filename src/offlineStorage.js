@@ -131,6 +131,16 @@ class OfflineStorage {
   async saveParticipant(participant, isFromServer = false) {
     await this.init();
     try {
+      // Debug: Check the raw participant object
+      console.log('saveParticipant DEBUG:', {
+        hasId: !!participant.cr648_participantinformationid,
+        idValue: participant.cr648_participantinformationid,
+        idType: typeof participant.cr648_participantinformationid,
+        participantKeys: Object.keys(participant),
+        participantType: typeof participant,
+        isFromServer
+      });
+
       const participantWithMeta = {
         ...participant,
         lastModified: Date.now(),
@@ -142,9 +152,41 @@ class OfflineStorage {
         participantWithMeta.cr648_participantinformationid = `offline_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       }
 
+      // Debug: Test key path access
+      const keyTest = participantWithMeta.cr648_participantinformationid;
+      console.log('Key path test:', {
+        directAccess: keyTest,
+        bracketAccess: participantWithMeta['cr648_participantinformationid'],
+        hasOwnProp: participantWithMeta.hasOwnProperty('cr648_participantinformationid'),
+        keyInObj: 'cr648_participantinformationid' in participantWithMeta
+      });
+
+      // Try creating a completely clean object
+      const cleanParticipant = {};
+      for (const [key, value] of Object.entries(participantWithMeta)) {
+        cleanParticipant[key] = value;
+      }
+
       const tx = this.db.transaction(STORES.PARTICIPANTS, 'readwrite');
       const store = tx.objectStore(STORES.PARTICIPANTS);
-      await store.put(participantWithMeta);
+      
+      try {
+        await store.put(cleanParticipant);
+      } catch (keyPathError) {
+        console.log('Clean object failed, trying minimal object:', keyPathError.message);
+        
+        // Last resort: create minimal object with just essential fields
+        const minimalParticipant = {
+          cr648_participantinformationid: String(participantWithMeta.cr648_participantinformationid),
+          cr648_firstname: participantWithMeta.cr648_firstname || '',
+          cr648_lastname: participantWithMeta.cr648_lastname || '',
+          lastModified: Date.now(),
+          needsSync: !isFromServer,
+          _originalData: JSON.stringify(participant) // Keep original for sync
+        };
+        
+        await store.put(minimalParticipant);
+      }
 
       if (!isFromServer) {
         await this.addToSyncQueue({
