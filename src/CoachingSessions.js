@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Button,
@@ -274,7 +274,7 @@ const CoachingSessions = () => { // Renamed component
     }
   };
 
-  const applyFiltersAndSearch = (recordsToFilter, currentSearchTerm, lessonPlan, dateFrom, dateTo, participantEval, coachName, participantFilter) => {
+  const applyFiltersAndSearch = useCallback((recordsToFilter, currentSearchTerm, lessonPlan, dateFrom, dateTo, participantEval, coachName, participantFilter) => {
     let filtered = recordsToFilter;
 
     // General search
@@ -345,11 +345,11 @@ const CoachingSessions = () => { // Renamed component
     }
     setCurrentFilteredRecords(filtered); // Update all filtered records
     // setCurrentPage(1); // Reset to page 1 when filters change - handled by useEffect dependency on currentFilteredRecords
-  };
+  }, [participantRecords]);
   
   useEffect(() => {
     applyFiltersAndSearch(allProgressRecords, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName, filterParticipant);
-  }, [searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName, filterParticipant, allProgressRecords, participantRecords]);
+  }, [applyFiltersAndSearch, searchTerm, filterLessonPlan, filterDateFrom, filterDateTo, filterParticipantEval, filterCoachName, filterParticipant, allProgressRecords]);
 
   useEffect(() => {
     // When filters change (currentFilteredRecords updates) or page changes, calculate the records for the current page
