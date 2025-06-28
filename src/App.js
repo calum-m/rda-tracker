@@ -463,7 +463,7 @@ const AppWithEmotionCache = () => {
                   }}
                 >
                   <Typography variant="caption" color="text.secondary" display="block">
-                    Version 2.1.0
+                    Version 2.2.0
                   </Typography>
                   {account && (
                     <Typography variant="body2" color="text.secondary" component="span" sx={{ mr: 0.5 }}>

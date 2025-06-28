@@ -1,6 +1,6 @@
 {
   "name": "rda-tracker",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A comprehensive React application for managing RDA (Riding for the Disabled Association) participants and coaching sessions, featuring Azure AD authentication and Microsoft Dataverse integration.",
   "homepage": "https://tracker.highlandgrouprda.org.uk",
   "repository": {

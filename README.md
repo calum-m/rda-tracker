@@ -1,4 +1,4 @@
-# RDA Tracker Application (v2.1.0)
+# RDA Tracker Application (v2.2.0)
 
 > **🌐 Live Demo**: [https://tracker.highlandgrouprda.org.uk](https://tracker.highlandgrouprda.org.uk)  
 > **📱 PWA Support**: Install directly from your browser as a desktop/mobile app  
@@ -9,7 +9,7 @@ This React application is designed to track and manage information for an RDA (R
 
 > **🎯 Portfolio Project**: This application demonstrates enterprise-level React development with Azure integration, offline-first architecture, GDPR compliance, modern UI patterns, and comprehensive security implementation.
 
-## ✨ Current Features (v2.1.0)
+## ✨ Current Features (v2.2.0)
 
 ### 🔐 **Authentication & Security**
 *   **Secure Authentication**: Azure AD integration via MSAL with extended token lifetime for offline use
@@ -143,7 +143,7 @@ This React application is designed to track and manage information for an RDA (R
         *   `index.css`: Global styles and base CSS
 *   **Configuration Files**:
     *   `CLAUDE.md`: Developer guidance for Claude Code instances
-    *   `package.json`: Dependencies and scripts (version 2.1.0) with offline libraries
+    *   `package.json`: Dependencies and scripts (version 2.2.0) with offline libraries
     *   `tailwind.config.js`: Tailwind CSS configuration (legacy)
     *   `postcss.config.js`: PostCSS configuration for CSS processing
 
@@ -272,7 +272,7 @@ The application supports PWA installation on:
 
 ## 🔄 Version History
 
-- **v2.1.0** (December 2024): **Major Update**
+- **v2.2.0** (December 2024): **Major Update**
   - ✨ **Complete Offline Capabilities**: Full offline-first architecture with IndexedDB storage
   - 🔐 **GDPR Compliance Toolkit**: Comprehensive data protection framework
   - 🔄 **Intelligent Sync**: Bidirectional sync with conflict resolution and retry logic
@@ -304,7 +304,7 @@ We welcome contributions! Please ensure:
 
 ## 🚀 Key Features Summary
 
-### What Makes RDA Tracker v2.1.0 Special:
+### What Makes RDA Tracker v2.2.0 Special:
 - **🔄 Offline-First Architecture**: Complete functionality without internet connection - perfect for field use
 - **🔐 Enterprise GDPR Compliance**: Full data protection toolkit with automated retention and user rights management
 - **🎯 Intelligent Sync**: Seamless background synchronization with conflict resolution when connectivity returns
@@ -324,7 +324,7 @@ We welcome contributions! Please ensure:
 
 ---
 
-**RDA Tracker v2.1.0** - *Last updated: 24 December 2024*
+**RDA Tracker v2.2.0** - *Last updated: 24 December 2024*
 
 *Built with ❤️ for the Riding for the Disabled Association community*  
 *Enterprise-ready • Offline-capable • GDPR-compliant*
