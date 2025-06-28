@@ -11,6 +11,64 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncStatus, setSyncStatus] = useState(null);
 
+  // Helper function to remove Dataverse system fields
+  const removeSystemFields = (data) => {
+    const systemFields = [
+      // Lookup value fields (read-only)
+      '_cr648_coachparticipantrelation_value',
+      '_modifiedonbehalfby_value',
+      '_createdby_value',
+      '_modifiedby_value',
+      '_ownerid_value',
+      '_owningbusinessunit_value',
+      '_owningteam_value',
+      '_owninguser_value',
+      // System metadata fields
+      'createdon',
+      'modifiedon',
+      'versionnumber',
+      'timezoneruleversionnumber',
+      'utcconversiontimezonecode',
+      'importsequencenumber',
+      'overriddencreatedon',
+      'statecode',
+      'statuscode',
+      // Entity reference fields
+      'createdby',
+      'modifiedby',
+      'modifiedonbehalfby',
+      'ownerid',
+      'owningbusinessunit',
+      'owningteam',
+      'owninguser',
+      // Note: cr648_CoachParticipantrelation is the correct field name (with proper casing)
+    ];
+
+    const cleanData = { ...data };
+    
+    // Remove system fields and lookup value fields
+    Object.keys(cleanData).forEach(key => {
+      if (systemFields.includes(key) || (key.startsWith('_') && key.endsWith('_value'))) {
+        delete cleanData[key];
+      }
+    });
+
+    // Handle participant lookup field with @odata.bind format
+    if (cleanData.cr648_CoachParticipantrelation) {
+      cleanData[`cr648_CoachParticipantrelation@odata.bind`] = `/cr648_participantinformations(${cleanData.cr648_CoachParticipantrelation})`;
+      delete cleanData.cr648_CoachParticipantrelation; // Remove the ID field after creating binding
+    }
+
+    // Remove all null values to prevent validation errors
+    Object.keys(cleanData).forEach(key => {
+      if (cleanData[key] === null) {
+        delete cleanData[key];
+      }
+    });
+
+    return cleanData;
+  };
+
   // Network status listener
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -76,10 +134,19 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
 
         if (apiResponse.ok) {
           const result = await apiResponse.json();
-          const records = result.value || [];
+          let records = result.value || [];
+          
+          // Transform lookup value fields for coaching sessions
+          if (entitySet === 'cr648_lessonevaluations') {
+            records = records.map(record => ({
+              ...record,
+              // Ensure cr648_CoachParticipantrelation is available from lookup value field
+              cr648_CoachParticipantrelation: record.cr648_CoachParticipantrelation || record._cr648_coachparticipantrelation_value
+            }));
+          }
           
           // Save to offline storage
-          if (entitySet === 'cr648_coachingsessions') {
+          if (entitySet === 'cr648_lessonevaluations') {
             await offlineStorage.saveCoachingSessions(records);
           } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants' || entitySet === 'cr648_participantinformations') {
             await offlineStorage.saveParticipants(records);
@@ -103,8 +170,13 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         console.log('Using offline storage for data');
         let offlineData = [];
         
-        if (entitySet === 'cr648_coachingsessions') {
+        if (entitySet === 'cr648_lessonevaluations') {
           offlineData = await offlineStorage.getCoachingSessions();
+          // Transform lookup value fields for coaching sessions
+          offlineData = (offlineData || []).map(record => ({
+            ...record,
+            cr648_CoachParticipantrelation: record.cr648_CoachParticipantrelation || record._cr648_coachparticipantrelation_value
+          }));
         } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants' || entitySet === 'cr648_participantinformations') {
           offlineData = await offlineStorage.getParticipants();
         }
@@ -132,8 +204,13 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
       try {
         let offlineData = [];
         
-        if (entitySet === 'cr648_coachingsessions') {
+        if (entitySet === 'cr648_lessonevaluations') {
           offlineData = await offlineStorage.getCoachingSessions();
+          // Transform lookup value fields for coaching sessions
+          offlineData = (offlineData || []).map(record => ({
+            ...record,
+            cr648_CoachParticipantrelation: record.cr648_CoachParticipantrelation || record._cr648_coachparticipantrelation_value
+          }));
         } else if (entitySet === 'cr648_participantinfo' || entitySet === 'cr648_participants' || entitySet === 'cr648_participantinformations') {
           offlineData = await offlineStorage.getParticipants();
         }
@@ -169,6 +246,11 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         const response = await instance.acquireTokenSilent(request);
         const token = response.accessToken;
 
+        // Clean the data before sending to API
+        const cleanData = removeSystemFields(recordData);
+        
+        console.log('Create API call - cleaned data:', cleanData);
+
         const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/${entitySet}`, {
           method: 'POST',
           headers: {
@@ -179,14 +261,14 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
             'OData-Version': '4.0',
             'Prefer': 'return=representation'
           },
-          body: JSON.stringify(recordData),
+          body: JSON.stringify(cleanData),
         });
 
         if (apiResponse.ok) {
           const createdRecord = await apiResponse.json();
           
           // Update local storage
-          if (entitySet === 'cr648_coachingsessions') {
+          if (entitySet === 'cr648_lessonevaluations') {
             await offlineStorage.saveCoachingSession(createdRecord);
           } else if (entitySet === 'cr648_participantinfo') {
             await offlineStorage.saveParticipant(createdRecord);
@@ -197,7 +279,16 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           
           return createdRecord;
         } else {
-          throw new Error(`Create failed: ${apiResponse.status}`);
+          // Get detailed error message from Dataverse
+          let errorMessage = `Create failed: ${apiResponse.status}`;
+          try {
+            const errorData = await apiResponse.json();
+            errorMessage += ` - ${errorData.error?.message || JSON.stringify(errorData)}`;
+          } catch (e) {
+            errorMessage += ` - ${apiResponse.statusText}`;
+          }
+          console.error('Dataverse API Error:', errorMessage);
+          throw new Error(errorMessage);
         }
       } else {
         // Queue for offline sync
@@ -210,7 +301,7 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         };
 
         // Save to local storage (automatically queues for sync)
-        if (entitySet === 'cr648_coachingsessions') {
+        if (entitySet === 'cr648_lessonevaluations') {
           await offlineStorage.saveCoachingSession(tempRecord);
         } else if (entitySet === 'cr648_participantinfo') {
           await offlineStorage.saveParticipant(tempRecord);
@@ -248,6 +339,11 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         const response = await instance.acquireTokenSilent(request);
         const token = response.accessToken;
 
+        // Clean the data before sending to API
+        const cleanData = removeSystemFields(recordData);
+        
+        console.log('Update API call - cleaned data:', cleanData);
+
         const apiResponse = await fetch(`${dataverseUrl}/api/data/v9.2/${entitySet}(${recordId})`, {
           method: 'PATCH',
           headers: {
@@ -258,14 +354,14 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
             'OData-Version': '4.0',
             'Prefer': 'return=representation'
           },
-          body: JSON.stringify(recordData),
+          body: JSON.stringify(cleanData),
         });
 
         if (apiResponse.ok) {
           const updatedRecord = await apiResponse.json();
           
           // Update local storage
-          if (entitySet === 'cr648_coachingsessions') {
+          if (entitySet === 'cr648_lessonevaluations') {
             await offlineStorage.saveCoachingSession(updatedRecord);
           } else if (entitySet === 'cr648_participantinfo') {
             await offlineStorage.saveParticipant(updatedRecord);
@@ -276,7 +372,16 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
           
           return updatedRecord;
         } else {
-          throw new Error(`Update failed: ${apiResponse.status}`);
+          // Get detailed error message from Dataverse
+          let errorMessage = `Update failed: ${apiResponse.status}`;
+          try {
+            const errorData = await apiResponse.json();
+            errorMessage += ` - ${errorData.error?.message || JSON.stringify(errorData)}`;
+            console.error('Dataverse Update API Error:', errorData);
+          } catch (e) {
+            errorMessage += ` - ${apiResponse.statusText}`;
+          }
+          throw new Error(errorMessage);
         }
       } else {
         // Update locally and queue for sync
@@ -287,7 +392,7 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         };
 
         // Update local storage (automatically queues for sync)
-        if (entitySet === 'cr648_coachingsessions') {
+        if (entitySet === 'cr648_lessonevaluations') {
           await offlineStorage.saveCoachingSession(updatedRecord);
         } else if (entitySet === 'cr648_participantinfo') {
           await offlineStorage.saveParticipant(updatedRecord);
@@ -337,7 +442,7 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
 
         if (apiResponse.ok) {
           // Remove from local storage
-          if (entitySet === 'cr648_coachingsessions') {
+          if (entitySet === 'cr648_lessonevaluations') {
             await offlineStorage.deleteCoachingSession(recordId);
           } else if (entitySet === 'cr648_participantinfo') {
             await offlineStorage.deleteParticipant(recordId);
@@ -351,7 +456,7 @@ const useOfflineData = (dataverseUrl, entitySet, primaryKey) => {
         }
       } else {
         // Delete locally (automatically queues for sync)
-        if (entitySet === 'cr648_coachingsessions') {
+        if (entitySet === 'cr648_lessonevaluations') {
           await offlineStorage.deleteCoachingSession(recordId);
         } else if (entitySet === 'cr648_participantinfo') {
           await offlineStorage.deleteParticipant(recordId);

@@ -2,7 +2,7 @@
 // Handles IndexedDB operations for offline data persistence
 
 const DB_NAME = 'rdaTrackerDB';
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 const STORES = {
   COACHING_SESSIONS: 'coachingSessions',
   PARTICIPANTS: 'participants',

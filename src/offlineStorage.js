@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 
 // Database configuration
 const DB_NAME = 'RDATrackerDB_v5'; // Change name to force complete recreation
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 const STORES = {
   PARTICIPANTS: 'participants',
   SESSIONS: 'coaching_sessions',
@@ -36,7 +36,7 @@ export const initDB = async () => {
             keyPath: 'cr648_lessonevaluationid'
           });
           sessionsStore.createIndex('date', 'cr648_date');
-          sessionsStore.createIndex('participantId', 'cr648_participantid');
+          sessionsStore.createIndex('participantId', 'cr648_CoachParticipantrelation');
           sessionsStore.createIndex('lastModified', 'lastModified');
         }
 
@@ -429,6 +429,21 @@ class OfflineStorage {
       pendingCount: pendingItems.length,
       hasPendingChanges: pendingItems.length > 0
     };
+  }
+
+  // Clear all pending sync items (useful for debugging/recovery)
+  async clearSyncQueue() {
+    await this.init();
+    try {
+      const tx = this.db.transaction(STORES.SYNC_QUEUE, 'readwrite');
+      const store = tx.objectStore(STORES.SYNC_QUEUE);
+      await store.clear();
+      console.log('Sync queue cleared successfully');
+      return true;
+    } catch (error) {
+      console.error('Error clearing sync queue:', error);
+      return false;
+    }
   }
 }
 

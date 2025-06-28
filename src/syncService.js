@@ -167,7 +167,7 @@ class SyncService {
     // Download coaching sessions
     try {
       const sessionsResponse = await fetch(
-        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_lessonevaluations?$select=cr648_lessonevaluationid,cr648_date,cr648_lessonplan,cr648_participantevaluation,cr648_coachname,cr648_participantid,cr648_notes`,
+        `${this.dataverseBaseUrl}/api/data/v9.2/cr648_lessonevaluations?$select=cr648_lessonevaluationid,cr648_date,cr648_lessonplan,cr648_participantsevaluation,cr648_coachname,_cr648_coachparticipantrelation_value`,
         {
           method: "GET",
           headers: {
@@ -270,6 +270,13 @@ class SyncService {
       body = JSON.stringify(cleanData);
     }
 
+    console.log(`Syncing session (${method}):`, {
+      url,
+      hasParticipantField: 'cr648_CoachParticipantrelation' in JSON.parse(body),
+      hasInternalField: '_cr648_coachparticipantrelation_value' in JSON.parse(body),
+      bodyData: JSON.parse(body)
+    });
+
     const response = await fetch(url, {
       method,
       headers: {
@@ -347,6 +354,15 @@ class SyncService {
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
       
+      // Handle participant lookup field with @odata.bind format for CREATE
+      if (cleanData.cr648_CoachParticipantrelation) {
+        cleanData[`cr648_CoachParticipantrelation@odata.bind`] = `/cr648_participantinformations(${cleanData.cr648_CoachParticipantrelation})`;
+        delete cleanData.cr648_CoachParticipantrelation; // Remove the ID field after creating binding
+      }
+      
+      // Remove all Dataverse system and internal fields
+      this.removeSystemFields(cleanData);
+      
       body = JSON.stringify(cleanData);
     } else {
       url = `${this.dataverseBaseUrl}/api/data/v9.2/cr648_lessonevaluations(${data.cr648_lessonevaluationid})`;
@@ -358,8 +374,24 @@ class SyncService {
       delete cleanData.isOfflineCreated;
       delete cleanData.needsSync;
       
+      // Handle participant lookup field with @odata.bind format for PATCH
+      if (cleanData.cr648_CoachParticipantrelation) {
+        cleanData[`cr648_CoachParticipantrelation@odata.bind`] = `/cr648_participantinformations(${cleanData.cr648_CoachParticipantrelation})`;
+        delete cleanData.cr648_CoachParticipantrelation; // Remove the ID field after creating binding
+      }
+      
+      // Remove all Dataverse system and internal fields
+      this.removeSystemFields(cleanData);
+      
       body = JSON.stringify(cleanData);
     }
+
+    console.log(`Syncing session (${method}):`, {
+      url,
+      hasParticipantField: 'cr648_CoachParticipantrelation' in JSON.parse(body),
+      hasInternalField: '_cr648_coachparticipantrelation_value' in JSON.parse(body),
+      bodyData: JSON.parse(body)
+    });
 
     const response = await fetch(url, {
       method,
@@ -443,6 +475,58 @@ class SyncService {
         retryCount: item.retryCount || 0
       }))
     };
+  }
+
+  // Remove Dataverse system and internal fields that shouldn't be in payloads
+  removeSystemFields(data) {
+    // List of common Dataverse system fields that should not be included in CREATE/UPDATE operations
+    const systemFields = [
+      // Lookup value fields (read-only)
+      '_cr648_coachparticipantrelation_value',
+      '_modifiedonbehalfby_value',
+      '_createdby_value',
+      '_modifiedby_value',
+      '_ownerid_value',
+      '_owningbusinessunit_value',
+      '_owningteam_value',
+      '_owninguser_value',
+      // System metadata fields
+      'createdon',
+      'modifiedon',
+      'versionnumber',
+      'timezoneruleversionnumber',
+      'utcconversiontimezonecode',
+      'importsequencenumber',
+      'overriddencreatedon',
+      'statecode',
+      'statuscode',
+      // Entity reference fields
+      'createdby',
+      'modifiedby',
+      'modifiedonbehalfby',
+      'ownerid',
+      'owningbusinessunit',
+      'owningteam',
+      'owninguser',
+      // Note: cr648_CoachParticipantrelation is the correct field name (with proper casing)
+    ];
+
+    // Remove any field that starts with underscore and ends with _value (lookup value fields)
+    Object.keys(data).forEach(key => {
+      if (systemFields.includes(key) || (key.startsWith('_') && key.endsWith('_value'))) {
+        delete data[key];
+      }
+    });
+  }
+
+  // Clear sync queue (for debugging/recovery)
+  async clearSyncQueue() {
+    console.log('Clearing sync queue...');
+    const result = await offlineStorage.clearSyncQueue();
+    if (result) {
+      this.notifyListeners({ isOnline: navigator.onLine, isSyncing: false, pendingCount: 0 });
+    }
+    return result;
   }
 }
 
