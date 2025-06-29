@@ -96,6 +96,18 @@ function HelpPage() {
                 </ListItem>
                 <ListItem sx={{ py: 0.5 }}>
                   <Link 
+                    href="#data-export" 
+                    sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById('data-export')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    Data Export (Excel, PDF, CSV)
+                  </Link>
+                </ListItem>
+                <ListItem sx={{ py: 0.5 }}>
+                  <Link 
                     href="#data-management" 
                     sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                     onClick={(e) => {
@@ -652,6 +664,177 @@ function HelpPage() {
           <Typography variant="body1" paragraph>
             Upon successful logout, you will be redirected to a "Logged Out" page confirming that your session has ended. This page also provides a convenient link to sign back in if needed.
           </Typography>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box sx={{ my: 2 }} id="data-export">
+          <Typography variant="h5" component="h2" gutterBottom>
+            Data Export (Excel, PDF, CSV)
+          </Typography>
+          <Typography variant="body1" paragraph>
+            The application provides comprehensive data export functionality for both coaching sessions and participant information. Export your data in multiple formats for reporting, backup, or external analysis.
+          </Typography>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            How to Export Data
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="1. Navigate to the data you want to export" 
+                secondary="Go to either 'Participant Information' or 'Coaching Sessions' page" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="2. Apply filters (optional)" 
+                secondary="Use search and filter options to narrow down the data you want to export" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="3. Click the Export button" 
+                secondary="Located next to the 'Add New' button, with a dropdown arrow icon" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="4. Choose your format" 
+                secondary="Select Excel (.xlsx), PDF, or CSV from the dropdown menu" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="5. Download begins automatically" 
+                secondary="The file will be saved to your default downloads folder with a timestamped filename" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Export Formats
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="Excel (.xlsx)" 
+                secondary="Professional spreadsheet format with formatted columns, ideal for further analysis in Excel or Google Sheets" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="PDF" 
+                secondary="Print-ready format with professional layout, headers, and metadata. Perfect for reports and archiving" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="CSV" 
+                secondary="Universal comma-separated format compatible with all spreadsheet applications and database imports" 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            What Data is Included
+          </Typography>
+          
+          <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, fontWeight: 'bold' }}>
+            Coaching Sessions Export (18 fields):
+          </Typography>
+          <List dense sx={{ pl: 2 }}>
+            <ListItem>
+              <ListItemText primary="• Participant names, coach names, session dates" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Session goals, lesson plans, equines used" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Equipment and resources" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Detailed warm-up, main content, and cool-down sections" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Coaching points, participant evaluations" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Session evaluation and next action plans" />
+            </ListItem>
+          </List>
+
+          <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, fontWeight: 'bold' }}>
+            Participant Information Export (25 fields):
+          </Typography>
+          <List dense sx={{ pl: 2 }}>
+            <ListItem>
+              <ListItemText primary="• Personal details (name, age, date of birth)" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Contact information (email, phone, mobile, address)" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Guardian/parent information and contact details" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Physical measurements (height, weight in multiple units)" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Medical information (disability status, epilepsy status)" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Program information (start date, approval status)" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Consent tracking (data protection, photos, volunteer status)" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="• Session preferences and scheduling" />
+            </ListItem>
+          </List>
+
+          <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
+            Export Tips
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="Filtered Data" 
+                secondary="Exports include only the data currently visible based on your search and filter settings" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="All Pages" 
+                secondary="Export includes all filtered records, not just the current page you're viewing" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Date Formatting" 
+                secondary="Dates are automatically formatted for readability in exports" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Boolean Values" 
+                secondary="Yes/No values are clearly displayed instead of true/false" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Timestamped Files" 
+                secondary="Export files are automatically named with the current date for easy organization" 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Works Offline" 
+                secondary="Export functionality works even when you're offline, using your locally stored data" 
+              />
+            </ListItem>
+          </List>
         </Box>
 
         <Divider sx={{ my: 2 }} />
