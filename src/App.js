@@ -429,39 +429,50 @@ const AppWithEmotionCache = () => {
                     <MenuItem onClick={() => { handleMobileMenuClose(); handleLogout(); }}>Logout ({userName})</MenuItem>
                   </Menu>
                 )}
-                <Container component="main" sx={{ flexGrow: 1, py: 3, px: { xs: 2, sm: 3 } }}>
-                  <AuthenticatedTemplate>
-                    {accounts.length > 0 && (
+{location.pathname === '/' && accounts.length > 0 ? (
+                  // Full-screen layout for homepage
+                  <Box component="main" sx={{ flexGrow: 1 }}>
+                    <AuthenticatedTemplate>
+                      <LandingPage />
+                    </AuthenticatedTemplate>
+                  </Box>
+                ) : (
+                  // Standard container layout for other pages
+                  <Container component="main" sx={{ flexGrow: 1, py: 3, px: { xs: 2, sm: 3 } }}>
+                    <AuthenticatedTemplate>
+                      {accounts.length > 0 && (
+                        <Routes>
+                          <Route path="/coaching-sessions" element={<CoachingSessions />} /> {/* Renamed path and component */}
+                          <Route path="/participant-info" element={<ParticipantInfo />} />
+                          <Route path="/help" element={<HelpPage />} />
+                          <Route path="/privacy-dashboard" element={<PrivacyDashboard />} />
+                          <Route path="/gdpr-admin" element={<GDPRAdminPanel />} />
+                          <Route path="/data-deleted" element={<DataDeletedPage />} />
+                          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                        </Routes>
+                      )}
+                    </AuthenticatedTemplate>
+                    <UnauthenticatedTemplate>
                       <Routes>
-                        <Route path="/coaching-sessions" element={<CoachingSessions />} /> {/* Renamed path and component */}
-                        <Route path="/participant-info" element={<ParticipantInfo />} />
-                        <Route path="/help" element={<HelpPage />} />
-                        <Route path="/privacy-dashboard" element={<PrivacyDashboard />} />
-                        <Route path="/gdpr-admin" element={<GDPRAdminPanel />} />
-                        <Route path="/data-deleted" element={<DataDeletedPage />} />
-                        <Route path="/" element={<LandingPage />} />
-                        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                        <Route path="/logged-out" element={<LoggedOutPage />} />
+                        <Route path="/*" element={<UnauthenticatedView />} />
                       </Routes>
-                    )}
-                  </AuthenticatedTemplate>
-                  <UnauthenticatedTemplate>
-                    <Routes>
-                      <Route path="/logged-out" element={<LoggedOutPage />} />
-                      <Route path="/*" element={<UnauthenticatedView />} />
-                    </Routes>
-                  </UnauthenticatedTemplate>
-                </Container>
-                <Box
-                  component="footer"
-                  sx={{
-                    py: 2,
-                    px: 2,
-                    mt: 'auto',
-                    backgroundColor: (thm) =>
-                      thm.palette.mode === 'light' ? thm.palette.grey[200] : thm.palette.grey[800],
-                    textAlign: 'center',
-                  }}
-                >
+                    </UnauthenticatedTemplate>
+                  </Container>
+                )}
+{/* Hide footer on homepage to maintain full-screen background */}
+                {location.pathname !== '/' && (
+                  <Box
+                    component="footer"
+                    sx={{
+                      py: 2,
+                      px: 2,
+                      mt: 'auto',
+                      backgroundColor: (thm) =>
+                        thm.palette.mode === 'light' ? thm.palette.grey[200] : thm.palette.grey[800],
+                      textAlign: 'center',
+                    }}
+                  >
                   <Typography variant="caption" color="text.secondary" display="block">
                     Version 2.3.0
                   </Typography>
@@ -473,10 +484,11 @@ const AppWithEmotionCache = () => {
                       {' | '}
                     </Typography>
                   )}
-                  <Typography variant="body2" color="text.secondary" component="span">
-                    © {new Date().getFullYear()} RDA Tracker
-                  </Typography>
-                </Box>
+                    <Typography variant="body2" color="text.secondary" component="span">
+                      © {new Date().getFullYear()} RDA Tracker
+                    </Typography>
+                  </Box>
+                )}
               </Box>
           )}
           {account && !userConsent.given && !showConsentModal && (
