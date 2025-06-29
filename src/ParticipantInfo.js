@@ -28,6 +28,8 @@ import DialogContentText from '@mui/material/DialogContentText'; // Added Dialog
 import Grid from '@mui/material/Grid'; // Import Grid
 import Pagination from '@mui/material/Pagination'; // Import Pagination
 import Chip from '@mui/material/Chip'; // Import Chip for offline indicators
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 
 // Icons
 import VisibilityIcon from '@mui/icons-material/Visibility'; // Added VisibilityIcon for view mode
@@ -38,6 +40,11 @@ import EditIcon from '@mui/icons-material/Edit'; // Added EditIcon
 import SaveIcon from '@mui/icons-material/Save'; // Added SaveIcon
 import CloudOff from '@mui/icons-material/CloudOff'; // Added offline icon
 import Sync from '@mui/icons-material/Sync'; // Added sync icon
+import GetApp from '@mui/icons-material/GetApp'; // Export icon
+import ArrowDropDown from '@mui/icons-material/ArrowDropDown';
+
+// Import export utilities
+import { ExportUtils, PARTICIPANT_INFO_COLUMNS } from './utils/ExportUtils';
 
 // Dataverse URL from environment variable with fallback
 const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL || "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -201,6 +208,10 @@ function ParticipantInfo() {
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
+
+  // Export state
+  const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
@@ -475,6 +486,51 @@ function ParticipantInfo() {
 
   const currentPageData = getCurrentPageData();
 
+  // Export functions
+  const handleExportClick = (event) => {
+    setExportMenuAnchor(event.currentTarget);
+  };
+
+  const handleExportClose = () => {
+    setExportMenuAnchor(null);
+  };
+
+  const handleExport = async (format) => {
+    setIsExporting(true);
+    handleExportClose();
+    
+    try {
+      const dataToExport = participantData; // Export all filtered data, not just current page
+      const filename = `participant_info_${new Date().toISOString().split('T')[0]}`;
+      const title = `Participant Information Report (${dataToExport.length} records)`;
+      
+      let result;
+      switch (format) {
+        case 'excel':
+          result = await ExportUtils.exportToExcel(dataToExport, filename, PARTICIPANT_INFO_COLUMNS, 'Participants');
+          break;
+        case 'pdf':
+          result = await ExportUtils.exportToPDF(dataToExport, filename, PARTICIPANT_INFO_COLUMNS, title);
+          break;
+        case 'csv':
+          result = await ExportUtils.exportToCSV(dataToExport, filename, PARTICIPANT_INFO_COLUMNS);
+          break;
+        default:
+          throw new Error(`Unsupported format: ${format}`);
+      }
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      console.log(`Export successful: ${result.filename}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      // Could add a toast notification here in the future
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Render the table
   return (
@@ -525,13 +581,39 @@ function ParticipantInfo() {
           onChange={handleSearchChange}
           sx={{ width: '40%' }}
         />
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          Add New Participant
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            Add New Participant
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<GetApp />}
+            endIcon={<ArrowDropDown />}
+            onClick={handleExportClick}
+            disabled={isExporting || participantData.length === 0}
+          >
+            {isExporting ? 'Exporting...' : 'Export'}
+          </Button>
+          <Menu
+            anchorEl={exportMenuAnchor}
+            open={Boolean(exportMenuAnchor)}
+            onClose={handleExportClose}
+          >
+            <MenuItem onClick={() => handleExport('excel')}>
+              Export to Excel
+            </MenuItem>
+            <MenuItem onClick={() => handleExport('pdf')}>
+              Export to PDF
+            </MenuItem>
+            <MenuItem onClick={() => handleExport('csv')}>
+              Export to CSV
+            </MenuItem>
+          </Menu>
+        </Box>
       </Box>
       {isLoading && !participantData.length && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>}
       {!isLoading && !error && participantData.length === 0 && searchTerm === '' && (

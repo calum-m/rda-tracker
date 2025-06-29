@@ -22,11 +22,14 @@ import {
   Alert,
   IconButton,
   Chip, // Added Chip for offline indicators
-  Autocomplete // Added for participant selection
+  Autocomplete, // Added for participant selection
+  Menu,
+  MenuItem
 } from "@mui/material";
-import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, CloudOff as CloudOffIcon, Sync as SyncIcon } from '@mui/icons-material'; // Added offline icons
+import { Edit as EditIcon, Save as SaveIcon, Add as AddIcon, Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, CloudOff as CloudOffIcon, Sync as SyncIcon, GetApp as ExportIcon, ArrowDropDown as DropdownIcon } from '@mui/icons-material'; // Added offline icons
 import Pagination from '@mui/material/Pagination'; // Import Pagination
 import useOfflineData from './hooks/useOfflineData'; // Import offline data hook
+import { ExportUtils, COACHING_SESSIONS_COLUMNS } from './utils/ExportUtils';
 
 // Dataverse URL from environment variable with fallback
 const dataverseUrl = process.env.REACT_APP_DATAVERSE_URL || "https://orgdbcfb9bc.crm11.dynamics.com";
@@ -93,6 +96,10 @@ const CoachingSessions = () => { // Renamed component
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Export state
+  const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // New states for advanced filtering
   const [filterLessonPlan, setFilterLessonPlan] = useState("");
@@ -367,6 +374,67 @@ const CoachingSessions = () => { // Renamed component
     setCurrentPage(value);
   };
 
+  // Export functions
+  const handleExportClick = (event) => {
+    setExportMenuAnchor(event.currentTarget);
+  };
+
+  const handleExportClose = () => {
+    setExportMenuAnchor(null);
+  };
+
+  const handleExport = async (format) => {
+    setIsExporting(true);
+    handleExportClose();
+    
+    try {
+      const dataToExport = currentFilteredRecords.map(record => {
+        const participant = participantRecords?.find(p => 
+          p.cr648_participantinformationid === (record.cr648_CoachParticipantrelation || record._cr648_coachparticipantrelation_value)
+        );
+        
+        return {
+          ...record,
+          participant_name: participant ? `${participant.cr648_firstname || ''} ${participant.cr648_lastname || ''}`.trim() : '',
+          cr648_participantevaluation: record.cr648_participantsevaluation || record.cr648_participantevaluation,
+          cr648_equipment: record.cr648_equipmentresources || record.cr648_equipment,
+          cr648_tasks: record.cr648_taskwarmupcomment || record.cr648_tasks,
+          cr648_progressnotes: record.cr648_maincontentcomment || record.cr648_progressnotes,
+          cr648_nextsessionfocus: record.cr648_evaluationofsessionandactionfornextsession || record.cr648_nextsessionfocus
+        };
+      });
+
+      const filename = `coaching_sessions_${new Date().toISOString().split('T')[0]}`;
+      const title = `Coaching Sessions Report (${dataToExport.length} records)`;
+      
+      let result;
+      switch (format) {
+        case 'excel':
+          result = await ExportUtils.exportToExcel(dataToExport, filename, COACHING_SESSIONS_COLUMNS, 'Coaching Sessions');
+          break;
+        case 'pdf':
+          result = await ExportUtils.exportToPDF(dataToExport, filename, COACHING_SESSIONS_COLUMNS, title);
+          break;
+        case 'csv':
+          result = await ExportUtils.exportToCSV(dataToExport, filename, COACHING_SESSIONS_COLUMNS);
+          break;
+        default:
+          throw new Error(`Unsupported format: ${format}`);
+      }
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      console.log(`Export successful: ${result.filename}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      // Could add a toast notification here in the future
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -423,6 +491,30 @@ const CoachingSessions = () => { // Renamed component
         >
           Create New Coaching Session {/* Renamed button text */}
         </Button>
+        <Button
+          variant="outlined"
+          startIcon={<ExportIcon />}
+          endIcon={<DropdownIcon />}
+          onClick={handleExportClick}
+          disabled={isExporting || currentFilteredRecords.length === 0}
+        >
+          {isExporting ? 'Exporting...' : 'Export'}
+        </Button>
+        <Menu
+          anchorEl={exportMenuAnchor}
+          open={Boolean(exportMenuAnchor)}
+          onClose={handleExportClose}
+        >
+          <MenuItem onClick={() => handleExport('excel')}>
+            Export to Excel
+          </MenuItem>
+          <MenuItem onClick={() => handleExport('pdf')}>
+            Export to PDF
+          </MenuItem>
+          <MenuItem onClick={() => handleExport('csv')}>
+            Export to CSV
+          </MenuItem>
+        </Menu>
       </Box>
 
       <Paper sx={{ p: 2, mb: 2 }}>

@@ -1,4 +1,4 @@
-# RDA Tracker Application (v2.2.0)
+# RDA Tracker Application (v2.3.0)
 
 > **🌐 Live Demo**: [https://tracker.highlandgrouprda.org.uk](https://tracker.highlandgrouprda.org.uk)  
 > **📱 PWA Support**: Install directly from your browser as a desktop/mobile app  
@@ -9,7 +9,7 @@ This React application is designed to track and manage information for an RDA (R
 
 > **🎯 Portfolio Project**: This application demonstrates enterprise-level React development with Azure integration, offline-first architecture, GDPR compliance, modern UI patterns, and comprehensive security implementation.
 
-## ✨ Current Features (v2.2.0)
+## ✨ Current Features (v2.3.0)
 
 ### 🔐 **Authentication & Security**
 *   **Secure Authentication**: Azure AD integration via MSAL with extended token lifetime for offline use
@@ -27,6 +27,11 @@ This React application is designed to track and manage information for an RDA (R
 *   **Create New Participants**: Modal dialog form with validation for required fields
 *   **Delete with Confirmation**: Safety dialog prevents accidental deletions
 *   **Responsive Design**: Optimized for desktop, tablet, and mobile devices
+*   **📊 Comprehensive Export**: Export complete participant records to Excel, PDF, or CSV
+    *   Personal details, contact information, emergency contacts
+    *   Medical information, height/weight, disability status
+    *   Guardian details, consent tracking, volunteer status
+    *   Start dates, approval status, session preferences
 
 ### 🎯 **Coaching Sessions Management** (`/coaching-sessions`)
 *   **Session Tracking**: Comprehensive management of all coaching sessions
@@ -37,6 +42,10 @@ This React application is designed to track and manage information for an RDA (R
     *   **Edit Mode**: Inline editing with immediate save/cancel options
 *   **Create New Sessions**: Dialog form for entering session details and evaluations
 *   **Delete Protection**: Confirmation dialogs for safe session removal
+*   **📊 Data Export**: Export coaching session reports to Excel, PDF, or CSV with complete session data
+    *   Includes participant names, session goals, lesson plans, equipment used
+    *   Detailed warm-up, main content, and cool-down sections
+    *   Coaching points, evaluations, and next session actions
 
 ### 🎨 **User Interface & Experience**
 *   **Material-UI Design**: Consistent, professional styling throughout the application
@@ -95,6 +104,7 @@ This React application is designed to track and manage information for an RDA (R
     *   **Offline**: IndexedDB with `idb` library for local storage
 *   **UI Framework**: Material-UI (MUI) v5 - Complete component library (`@mui/material`, `@emotion/react`, `@emotion/styled`)
 *   **Icons**: Material-UI Icons (`@mui/icons-material`)
+*   **Data Export**: Comprehensive export functionality (`xlsx`, `jspdf`, `jspdf-autotable`)
 *   **Styling**: 
     *   Primary: Material-UI theming and `sx` prop styling
     *   Legacy: Some Tailwind CSS components (being phased out)
@@ -143,7 +153,7 @@ This React application is designed to track and manage information for an RDA (R
         *   `index.css`: Global styles and base CSS
 *   **Configuration Files**:
     *   `CLAUDE.md`: Developer guidance for Claude Code instances
-    *   `package.json`: Dependencies and scripts (version 2.2.0) with offline libraries
+    *   `package.json`: Dependencies and scripts (version 2.3.0) with offline and export libraries
     *   `tailwind.config.js`: Tailwind CSS configuration (legacy)
     *   `postcss.config.js`: PostCSS configuration for CSS processing
 
@@ -272,6 +282,15 @@ The application supports PWA installation on:
 
 ## 🔄 Version History
 
+- **v2.3.0** (December 2024): **Export Enhancement Update**
+  - 📊 **Comprehensive Data Export**: Full Excel, PDF, and CSV export functionality
+  - 📋 **Complete Field Coverage**: All 18 coaching session fields and 25 participant fields
+  - 📤 **Smart Data Formatting**: Automatic date formatting, boolean conversion, and disability status codes
+  - 🎯 **Filtered Exports**: Export respects current search and filter settings
+  - 📱 **Cross-Platform Compatibility**: Robust export functionality across all browsers
+  - 🔧 **Enhanced PDF Generation**: Landscape layout with professional formatting
+  - ⚡ **Optimized Performance**: Efficient handling of large datasets during export
+
 - **v2.2.0** (December 2024): **Major Update**
   - ✨ **Complete Offline Capabilities**: Full offline-first architecture with IndexedDB storage
   - 🔐 **GDPR Compliance Toolkit**: Comprehensive data protection framework
@@ -282,6 +301,7 @@ The application supports PWA installation on:
   - ⚙️ **Admin Tools**: GDPR compliance management panel
   - 🎨 **Material-UI Redesign**: Complete UI overhaul with responsive design
   - 📄 **Dual Mode Operations**: View/edit modes with pagination
+
 - **v0.1.0** (Initial release): Basic functionality with online-only capabilities
 
 ## 🤝 Contributing
@@ -304,14 +324,15 @@ We welcome contributions! Please ensure:
 
 ## 🚀 Key Features Summary
 
-### What Makes RDA Tracker v2.2.0 Special:
+### What Makes RDA Tracker v2.3.0 Special:
 - **🔄 Offline-First Architecture**: Complete functionality without internet connection - perfect for field use
+- **📊 Advanced Data Export**: Full Excel, PDF, and CSV export with all 43 data fields across coaching sessions and participants
 - **🔐 Enterprise GDPR Compliance**: Full data protection toolkit with automated retention and user rights management
 - **🎯 Intelligent Sync**: Seamless background synchronization with conflict resolution when connectivity returns
 - **📱 Mobile-First Design**: Responsive PWA that works seamlessly on all devices, installable as a native app
 - **⚡ Real-Time Operations**: Instant search, client-side pagination, and live status indicators
 - **🛡️ Enterprise Security**: Extended Azure AD authentication designed for all-day offline scenarios
-- **📊 Comprehensive Data Management**: Full CRUD operations with offline persistence and sync queuing
+- **📋 Comprehensive Data Management**: Full CRUD operations with offline persistence and sync queuing
 - **🎨 Professional UI**: Consistent Material-UI design with real-time offline status indicators
 - **📚 Self-Service Help**: Built-in comprehensive help system with offline usage guidance
 - **⚖️ Legal Compliance**: Complete GDPR toolkit with privacy dashboard, audit trails, and automated data retention
@@ -324,7 +345,7 @@ We welcome contributions! Please ensure:
 
 ---
 
-**RDA Tracker v2.2.0** - *Last updated: 24 December 2024*
+**RDA Tracker v2.3.0** - *Last updated: 29 December 2024*
 
 *Built with ❤️ for the Riding for the Disabled Association community*  
 *Enterprise-ready • Offline-capable • GDPR-compliant*
